@@ -3,6 +3,10 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import _config as config
 from rdflib import Graph, RDF, URIRef
 from rdflib.namespace import SKOS
+import pickle
+import os
+from helper import APP_DIR
+
 
 class RVA(Source):
     """Source for Research Vocabularies Australia
@@ -15,12 +19,87 @@ class RVA(Source):
 
     @staticmethod
     def init():
-        # print('Building concept hierarchy for source type RVA ...')
-        # # build conceptHierarchy
-        # for item in config.VOCABS:
-        #     if config.VOCABS[item]['source'] == config.VocabSource.RVA:
-        #         RVA.hierarchy[item] = RVA.build_concept_hierarchy(item)
-        pass
+        print('RVA init ...')
+        # Get register item metadata
+        for vocab_id in config.VOCABS:
+            if config.VOCABS[vocab_id]['source'] == config.VocabSource.RVA:
+                # TODO: Check if pickle file exists before caching
+                # Cache it as a pickle
+                if config.VOCABS[vocab_id].get('turtle'):
+                    print('Creating pickle file for {}'.format(vocab_id))
+                    g = Graph().parse(config.VOCABS[vocab_id]['turtle'], format='turtle')
+                    file_path = os.path.join(APP_DIR, 'vocab_files', vocab_id + '.p')
+                    with open(file_path, 'wb') as f:
+                        pickle.dump(g, f)
+                        f.close()
+
+                    # Since we've cached it, change this vocab_id to source type of file
+                    config.VOCABS[vocab_id]['source'] = config.VocabSource.FILE
+
+                    # Don't find metadata, let the File source class handle it.
+                    continue
+
+                # Creators
+                sparql = SPARQLWrapper(config.VOCABS.get(vocab_id).get('sparql'))
+                sparql.setQuery("""PREFIX dct: <http://purl.org/dc/terms/>
+                    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                    SELECT *
+                    WHERE {{
+                        ?s a skos:ConceptScheme .
+                        ?s dct:creator ?o .
+                    }}
+                    """)
+                sparql.setReturnFormat(JSON)
+                try:
+                    creators = sparql.query().convert()['results']['bindings']
+                    config.VOCABS[vocab_id]['creators'] = list(set([creator['o']['value'] for creator in creators]))
+                except:
+                    config.VOCABS[vocab_id]['creators'] = None
+
+                # Date Created
+                sparql.setQuery("""PREFIX dct: <http://purl.org/dc/terms/>
+                    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                    SELECT *
+                    WHERE {
+                        ?s a skos:ConceptScheme .
+                        ?s (dct:created | dct:date) ?o .
+                    }""")
+                sparql.setReturnFormat(JSON)
+                try:
+                    date_created = sparql.query().convert()['results']['bindings'][0]['o']['value'][:10]
+                    config.VOCABS[vocab_id]['date_created'] = date_created
+                except:
+                    config.VOCABS[vocab_id]['date_created'] = None
+
+                # Date Modified
+                sparql.setQuery("""PREFIX dct: <http://purl.org/dc/terms/>
+                    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                    SELECT *
+                    WHERE {
+                        ?s a skos:ConceptScheme .
+                        ?s dct:modified ?o .
+                    }""")
+                sparql.setReturnFormat(JSON)
+                try:
+                    date_modified = sparql.query().convert()['results']['bindings'][0]['o']['value'][:10]
+                    config.VOCABS[vocab_id]['date_modified'] = date_modified
+                except:
+                    config.VOCABS[vocab_id]['date_modified'] = None
+
+                # Version
+                sparql.setQuery("""PREFIX dct: <http://purl.org/dc/terms/>
+                                    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                                    SELECT *
+                                    WHERE {
+                                        ?s a skos:ConceptScheme .
+                                        ?s owl:versionInfo ?o .
+                                    }""")
+                sparql.setReturnFormat(JSON)
+                try:
+                    version = sparql.query().convert()['results']['bindings'][0]['o']['value'][:10]
+                    config.VOCABS[vocab_id]['version'] = version
+                except:
+                    config.VOCABS[vocab_id]['version'] = None
 
     @classmethod
     def list_vocabularies(self):
@@ -46,15 +125,45 @@ class RVA(Source):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         sparql.setQuery('''
             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX dct: <http://purl.org/dc/terms/>
             SELECT *
             WHERE {
               ?c a skos:Concept .
               ?c skos:prefLabel ?pl .
+              OPTIONAL {{
+                ?c dct:created ?date_created .
+            }}
+            OPTIONAL {{
+                ?c dct:modified ?date_modified .
+            }}
             }''')
         sparql.setReturnFormat(JSON)
         concepts = sparql.query().convert()['results']['bindings']
 
-        return [(x.get('c').get('value'), x.get('pl').get('value')) for x in concepts]
+        concept_items = []
+        for concept in concepts:
+            metadata = {}
+            metadata.update({'key': self.vocab_id})
+            try:
+                metadata.update({'uri': concept['c']['value']})
+            except:
+                metadata.update({'uri': None})
+            try:
+                metadata.update({'title': concept['pl']['value']})
+            except:
+                metadata.update({'title': None})
+            try:
+                metadata.update({'date_created': concept['date_created']['value'][:10]})
+            except:
+                metadata.update({'date_created': None})
+            try:
+                metadata.update({'date_modified': concept['date_modified']['value'][:10]})
+            except:
+                metadata.update({'date_modified': None})
+
+            concept_items.append(metadata)
+
+        return concept_items
 
     def get_vocabulary(self):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
@@ -156,16 +265,19 @@ class RVA(Source):
     def get_concept(self, uri):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX dct: <http://purl.org/dc/terms/>
             SELECT *
             WHERE {{
-              <{}> skos:prefLabel ?pl .
-              OPTIONAL {{?s skos:definition ?d }}
+              <{0}> skos:prefLabel ?pl .
+              OPTIONAL {{ <{0}> skos:definition ?d }}
+              OPTIONAL {{ <{0}> dct:created ?date_created }}
+              OPTIONAL {{ <{0}> dct:modifieid ?date_modified }}
             }}'''.format(uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         metadata = None
         try:
-            metadata = sparql.query().convert()['results']['bindings']
+            metadata = sparql.query().convert()['results']['bindings'][0]
         except:
             pass
 
@@ -343,7 +455,7 @@ class RVA(Source):
             [x.get('al').get('value') for x in altLabels],
             [x.get('hl').get('value') for x in hiddenLabels],
             source,
-            metadata[0].get('cn').get('value') if metadata[0].get('cn') is not None else None,
+            metadata.get('cn').get('value') if metadata.get('cn') is not None else None,
             [{'uri': x.get('b').get('value'), 'prefLabel': x.get('pl').get('value')} for x in broaders],
             [{'uri': x.get('n').get('value'), 'prefLabel': x.get('pl').get('value')} for x in narrowers],
             [x['s']['value'] for x in exactMatches],
@@ -351,7 +463,9 @@ class RVA(Source):
             [x['s']['value'] for x in broadMatches],
             [x['s']['value'] for x in narrowMatches],
             [x['s']['value'] for x in relatedMatches],
-            None  # TODO: replace Sem Properties sub
+            None,  # TODO: replace Sem Properties sub
+            metadata.get('date_created').get('value')[:10] if metadata.get('date_created') else None,
+            metadata.get('date_modified').get('value')[:10] if metadata.get('date_modified') else None,
         )
 
     def get_concept_hierarchy(self):

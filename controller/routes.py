@@ -8,17 +8,39 @@ import markdown
 from flask import Markup
 from data.source import Source
 from data.source_VOCBENCH import VbException
+import json
 
 routes = Blueprint('routes', __name__)
 
 
 def render_invalid_vocab_id_response():
-    return Response(
-        'The vocabulary ID you\'ve supplied is not known. Must be one of:\n ' +
-        '\n'.join(config.VOCABS.keys()),
-        status=400,
-        mimetype='text/plain'
-    )
+    msg = """The vocabulary ID that was supplied was not known. It must be one of these: \n\n* """ + '\n* '.join(config.VOCABS.keys())
+    msg = Markup(markdown.markdown(msg))
+    return render_template('error.html', title='Error - invalid vocab id', heading='Invalid Vocab ID', msg=msg)
+    # return Response(
+    #     'The vocabulary ID you\'ve supplied is not known. Must be one of:\n ' +
+    #     '\n'.join(config.VOCABS.keys()),
+    #     status=400,
+    #     mimetype='text/plain'
+    # )
+
+
+def render_vb_exception_response(e):
+    e = json.loads(str(e))
+    msg = e['stresponse']['msg']
+    if 'not an open project' in msg:
+        invalid_vocab_id = msg.split('not an open project:')[-1]
+        msg = 'The VocBench instance returned with an error: **{}** is not an open project.'.format(invalid_vocab_id)
+        msg = Markup(markdown.markdown(msg))
+    return render_template('error.html', title='Error', heading='VocBench Error', msg=msg)
+
+
+def render_invalid_object_class_response(vocab_id, uri, c_type):
+    msg = """No valid *Object Class URI* found for vocab_id **{}** and uri **{}** 
+    
+Instead, found **{}**.""".format(vocab_id, uri, c_type)
+    msg = Markup(markdown.markdown(msg))
+    return render_template('error.html', title='Error - Object Class URI', heading='Concept Class Type Error', msg=msg)
 
 
 def get_a_vocab_source_key():
@@ -52,7 +74,7 @@ def match(vocabs, query):
     :rtype: generator
     """
     for word in vocabs:
-        if query.lower() in word[1].lower():
+        if query.lower() in word['title'].lower():
             yield word
 
 
@@ -66,8 +88,10 @@ def vocabularies():
     # get this instance's list of vocabs
     vocabs = []
     for k, v in config.VOCABS.items():
-        vocabs.append((k, v['title']))
-    vocabs.sort(key=lambda tup: tup[1])
+        v['vocab_id'] = k
+        v['uri'] = request.base_url + k
+        vocabs.append(v)
+    vocabs.sort(key=lambda item: item['title'])
     total = len(config.VOCABS.items())
 
     # Search
@@ -77,7 +101,7 @@ def vocabularies():
         for m in match(vocabs, query):
             results.append(m)
         vocabs[:] = results
-        vocabs.sort(key=lambda tup: tup[1])
+        vocabs.sort(key=lambda item: item['title'])
         total = len(vocabs)
 
     # generate vocabs list for requested page and per_page
@@ -93,7 +117,8 @@ def vocabularies():
         'Vocabularies',
         total,
         search_query=query,
-        search_enabled=True
+        search_enabled=True,
+        vocabulary_url=['http://www.w3.org/2004/02/skos/core#ConceptScheme']
     ).render()
 
 
@@ -106,7 +131,7 @@ def vocabulary(vocab_id):
     try:
         v = Source(vocab_id, request).get_vocabulary()
     except VbException as e:
-        return Response(response=str(e), status=400, mimetype='text/xml')
+        return render_vb_exception_response(e)
 
     return VocabularyRenderer(
         request,
@@ -121,7 +146,7 @@ def vocabulary_list(vocab_id):
 
     v = Source(vocab_id, request)
     concepts = v.list_concepts()
-    concepts.sort(key= lambda x: x[1])
+    concepts.sort(key= lambda x: x['title'])
     total = len(concepts)
 
     # Search
@@ -131,7 +156,7 @@ def vocabulary_list(vocab_id):
         for m in match(concepts, query):
             results.append(m)
         concepts[:] = results
-        concepts.sort(key=lambda tup: tup[1])
+        concepts.sort(key=lambda x: x['title'])
         total = len(concepts)
 
     page = int(request.values.get('page')) if request.values.get('page') is not None else 1
@@ -140,7 +165,7 @@ def vocabulary_list(vocab_id):
     end = start + per_page
     concepts = concepts[start:end]
 
-    return SkosRegisterRenderer(
+    test = SkosRegisterRenderer(
         request,
         [],
         concepts,
@@ -148,9 +173,10 @@ def vocabulary_list(vocab_id):
         total,
         search_query=query,
         search_enabled=True,
-        vocabulary_url=request.url_root + 'vocabulary/' + vocab_id,
+        vocabulary_url=[request.url_root + 'vocabulary/' + vocab_id],
         vocab_id=vocab_id
-    ).render()
+    )
+    return test.render()
 
 
 @routes.route('/collection/')
@@ -214,9 +240,9 @@ def object():
                 collection
             ).render()
         else:
-            return 'System error at /object endpoint: Object Class URI not found. '
+            return render_invalid_object_class_response(vocab_id, uri, c)
     except VbException as e:
-        return Response(response=str(e), status=400, mimetype='text/xml')
+        return render_vb_exception_response(e)
 
 
 @routes.route('/about')

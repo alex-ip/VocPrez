@@ -2,6 +2,11 @@ from data.source import Source
 import requests
 import json
 import _config as config
+from rdflib import Graph, Literal, URIRef
+from vocbench import Vocbench
+import owlrl
+import os
+from helper import APP_DIR
 
 
 class VbAuthException(Exception):
@@ -15,6 +20,110 @@ class VbException(Exception):
 class VOCBENCH(Source):
     def __init__(self, vocab_id, request):
         super().__init__(vocab_id, request)
+
+    @staticmethod
+    def init():
+        print('VocBench init ...')
+        VOCBENCH.voc = Vocbench(config.VB_USER, config.VB_PASSWORD, config.VB_ENDPOINT)
+
+        # Get register item metadata
+        for k in config.VOCABS:
+            if config.VOCABS[k]['source'] == config.VocabSource.VOCBENCH:
+                if not os.path.isfile(os.path.join(APP_DIR, 'vocab_files', k + '.p')):
+                    g = Graph().parse(data=VOCBENCH.voc.export_project(k), format='turtle')
+
+                    # Apply inferencing based on owl-rl.
+                    owlrl.DeductiveClosure(owlrl.OWLRL_Semantics).expand(g)
+
+                    VOCBENCH.pickle_to_file(k, g)
+                else:
+                    print('File {}.p exists, skipping pickling step.'.format(k))
+                config.VOCABS[k]['source'] = config.VocabSource.FILE
+
+                # # Creators
+                # r = s.post(
+                #     config.VB_ENDPOINT + '/SPARQL/evaluateQuery',
+                #     data={
+                #         'query':
+                #             '''PREFIX dct: <http://purl.org/dc/terms/>
+                #             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                #             SELECT *
+                #             WHERE {
+                #                 ?s a skos:ConceptScheme .
+                #                 ?s dct:creator ?o .
+                #             }''',
+                #         'ctx_project': k
+                #     }
+                # )
+                # try:
+                #     creators = json.loads(r.content.decode('utf-8'))['result']['sparql']['results']['bindings']
+                #     config.VOCABS[k]['creators'] = list(set([creator['o']['value'] for creator in creators]))
+                # except:
+                #     config.VOCABS[k]['creators'] = None
+                #
+                # # Date Created
+                # r = s.post(
+                #     config.VB_ENDPOINT + '/SPARQL/evaluateQuery',
+                #     data={
+                #         'query':
+                #             '''PREFIX dct: <http://purl.org/dc/terms/>
+                #             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                #             SELECT *
+                #             WHERE {
+                #                 ?s a skos:ConceptScheme .
+                #                 ?s (dct:created | dct:date) ?o .
+                #             }''',
+                #         'ctx_project': k
+                #     }
+                # )
+                # # Get the date in the format like '2019-01-01'.
+                # try:
+                #     date_created = json.loads(r.content.decode('utf-8'))['result']['sparql']['results']['bindings'][0]['o']['value'][:10]
+                #     config.VOCABS[k]['date_created'] = date_created
+                # except:
+                #     config.VOCABS[k]['date_created'] = None
+                #
+                # # Date Modified
+                # r = s.post(
+                #     config.VB_ENDPOINT + '/SPARQL/evaluateQuery',
+                #     data={
+                #         'query':
+                #             '''PREFIX dct: <http://purl.org/dc/terms/>
+                #             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                #             SELECT *
+                #             WHERE {
+                #                 ?s a skos:ConceptScheme .
+                #                 ?s dct:modified ?o .
+                #             }''',
+                #         'ctx_project': k
+                #     }
+                # )
+                # try:
+                #     date_modified = json.loads(r.content.decode('utf-8'))['result']['sparql']['results']['bindings'][0]['o']['value'][:10]
+                #     config.VOCABS[k]['date_modified'] = date_modified
+                # except:
+                #     config.VOCABS[k]['date_modified'] = None
+                #
+                # # Version
+                # r = s.post(
+                #     config.VB_ENDPOINT + '/SPARQL/evaluateQuery',
+                #     data={
+                #         'query':
+                #             '''PREFIX dct: <http://purl.org/dc/terms/>
+                #             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                #             SELECT *
+                #             WHERE {
+                #                 ?s a skos:ConceptScheme .
+                #                 ?s owl:versionInfo?o .
+                #             }''',
+                #         'ctx_project': k
+                #     }
+                # )
+                # try:
+                #     version = json.loads(r.content.decode('utf-8'))['result']['sparql']['results']['bindings'][0]['o']['value'][:10]
+                #     config.VOCABS[k]['version'] = version
+                # except:
+                #     config.VOCABS[k]['version'] = None
 
     @staticmethod
     def _authed_request_object():
@@ -77,17 +186,37 @@ class VOCBENCH(Source):
             data={
                 'query':
                     '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                    PREFIX dct: <http://purl.org/dc/terms/>
                     SELECT *
                     WHERE {
-                      ?c a skos:Concept ;
-                         skos:prefLabel ?pl .
+                        ?c  a skos:Concept ;
+                            skos:prefLabel ?pl .
+                            ?c dct:created ?date_created .
+                        OPTIONAL {{
+                            ?c dct:modified ?date_modified .
+                        }}
                     }''',
                 'ctx_project': self.vocab_id
             }
         )
         concepts = json.loads(r.content.decode('utf-8'))['result']['sparql']['results']['bindings']
+
         if r.status_code == 200:
-            return [(x.get('c').get('value'), x.get('pl').get('value')) for x in concepts]
+            concept_items = []
+            for concept in concepts:
+                metadata = {}
+                metadata.update({'key': self.vocab_id})
+                metadata.update({'uri': concept.get('c').get('value')})
+                metadata.update({'title': concept.get('pl').get('value')})
+                metadata.update({'date_created': concept.get('date_created').get('value')[:10]})
+                try:
+                    metadata.update({'date_modified': concept.get('date_modified').get('value')[:10]})
+                except:
+                    metadata.update({'date_modified': None})
+
+                concept_items.append(metadata)
+
+            return concept_items
         else:
             raise VbException('There was an error: ' + r.content.decode('utf-8'))
 
@@ -147,10 +276,13 @@ class VOCBENCH(Source):
 
     def get_concept(self, uri):
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX dct: <http://purl.org/dc/terms/>
             SELECT *
             WHERE {{
               <{0}> skos:prefLabel ?pl .
-              OPTIONAL {{<{0}> skos:definition ?d }}
+              OPTIONAL {{ <{0}> skos:definition ?d }}
+              OPTIONAL {{ <{0}> dct:created ?date_created }}
+              OPTIONAL {{ <{0}> dct:modified ?date_modified }}
             }}'''.format(uri)
         self.s = VOCBENCH('x', self.request)._authed_request_object()
         r = self.s.post(
@@ -316,7 +448,9 @@ class VOCBENCH(Source):
             [x['s']['value'] for x in broadMatches],
             [x['s']['value'] for x in narrowMatches],
             [x['s']['value'] for x in relatedMatches],
-            None  # TODO: replace Sem Properties sub
+            None, # TODO: replace Sem Properties sub,
+            metadata.get('date_created').get('value')[:10] if metadata.get('date_created') else None,
+            metadata.get('date_modified').get('value')[:10] if metadata.get('date_modified') else None,
         )
 
     def get_concept_hierarchy(self, concept_scheme_uri):

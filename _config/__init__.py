@@ -68,7 +68,7 @@ VOCABS = {
         'title': 'jena-fuseki-igsn',
         'sparql': 'http://test.loci.prov.ga.gov.au/fuseki//fuseki/rdf_updater_test_dataset/query',
         'download': 'rdf_test'
-    },
+    }
     # 'assoc': {
     #     'source': VocabSource.FILE,
     #     'title': 'ISO19115-1 Association Type Codes - File'
@@ -85,10 +85,10 @@ VOCABS = {
     #     'source': VocabSource.FILE,
     #     'title': 'Contact Type - File'
     # },
-    'ga-stratigraphic-rank': {
-        'source': VocabSource.FILE,
-        'title': 'Stratigraphic Rank File'
-    }
+    # 'ga-stratigraphic-rank': {
+    #     'source': VocabSource.FILE,
+    #     'title': 'Stratigraphic Rank File'
+    # }
 }
 
 #
