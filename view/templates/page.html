@@ -41,8 +41,12 @@
                 {{ nav|safe }}
             {% endfor %}
             <a href="{{ url_for('routes.index') }}">System Home</a> /
-            <a href="{{ url_for('routes.vocabularies') }}">Vocabularies</a> /
-            <a href="{{ url_for('routes.about') }}">About</a>
+            <a href="{{ url_for('routes.vocabularies') }}">CGI Vocabularies</a> /
+            <a href="{{ url_for('routes.about') }}">About VocPrez</a> /
+                        <a href="http://www.cgi-iugs.org/">About CGI </a> /
+                        <a href="http://www.geosciml.org/">GeoSciML</a> /
+                        <a href="http://www.earthresourceml.org/">EarthResourceML</a> /
+                        <a href="http://resource.geosciml.org/">CGI vocabularies</a>
         </div>
     </div>
 
@@ -59,17 +63,14 @@
         <table class="footer">
             <tr>
                 <td>
-                            <p style="text-align:left;">
+                    <p style="text-align:left;">
             <a href="http://creativecommons.org/licenses/by/4.0/legalcode"><img src="{{ url_for('static', filename = 'cc_icon.png') }}" style="width:88px;" /></a>
         </p>
                 </td>
                 <td>
-
-                    CGI © 2019. This site is hosted by <a href="http://www.ga.gov.au/">Geoscience Australia</a> but responsibility and copyright for the site
+                    CGI © {{ date.year }}. This site is hosted by <a href="http://www.ga.gov.au/">Geoscience Australia</a> but responsibility and copyright for the site
                     content lies with the <a href="http://www.cgi-iugs.org/">IUGS CGI</a>. Questions, suggestions or comments regarding the contents of this
                     site should be directed to the <a href="mailto:CGIsecretariat@mail.cgs.gov.cn">CGI secretariat</a>.
-
-
                 </td>
             </tr>
         </table>

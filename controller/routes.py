@@ -9,6 +9,8 @@ from flask import Markup
 from data.source import Source
 from data.source_VOCBENCH import VbException
 import json
+import datetime
+import pytz
 
 routes = Blueprint('routes', __name__)
 
@@ -51,6 +53,10 @@ def get_a_vocab_source_key():
     :rtype: str
     """
     return next(iter(config.VOCABS))
+
+@routes.context_processor
+def inject_date():
+    return {'date': datetime.date.today()}
 
 
 @routes.route('/')
