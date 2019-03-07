@@ -68,27 +68,33 @@ a:hover {
 */
 #header {
 	text-align:center;
-
+	align:center;
 }
 #header > table {
 	margin:0 auto;
-	text-align:left;
-	width:1245px;
+	text-align:center;
 
 }
-img#ga-logo {
+
+.header td
+{
+padding:10px;
+vertical-align:middle;
+}
+
+img#cgi-logo {
 	height:100px;
 }
 td#quote {
 	font-size:1.5em;
 	font-family:sans-serif;
 }
-#ga-colour-strip-container {
-	width:100%;
+#cgi-colour-strip-container {
+	width:130%;
 }
-#ga-colour-strip {
+#cgi-colour-strip {
 	height:10px;
-	width:100%;
+	width:130%;
 }
 
 /*
@@ -176,7 +182,7 @@ table.lined {
 table.lined th,
 table.lined td {
     border: solid 1px black;
-    padding: 5px;
+    padding: 15px;
 }
 
 table.pretty {
@@ -198,7 +204,7 @@ table.pretty tr:nth-child(odd) {
 table.pretty th,
 table.pretty td {
     /*border: solid 1px black;*/
-    padding: 5px;
+    padding: 15px;
 }
 
 table.pretty th {
