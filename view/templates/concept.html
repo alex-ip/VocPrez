@@ -5,19 +5,6 @@
 <h3>URI: <a href="{{ uri }}">{{ uri }}</a></h3>
 <h3>Within vocab <a href="{{ url_for('routes.vocabulary', vocab_id=vocab_id) }}">{{ vocab_title }}</a></h3>
 <table class="metadata concept">
-    {% if concept.date_created %}
-    <tr>
-        <th>Date created:</th>
-        <td>{{ concept.date_created }}</td>
-    </tr>
-    {% endif %}
-
-    {% if concept.date_modified %}
-    <tr>
-        <th>Date modified:</th>
-        <td>{{ concept.date_modified }}</td>
-    </tr>
-    {% endif %}
     {% if concept.altLabels|length > 0 %}
     <tr>
         <th>Alternative Labels</th>
@@ -28,72 +15,56 @@
         </td>
     </tr>
     {% endif %}
-
     <!-- don't display hiddenLabels, duh! -->
     {%  if concept.definition is not none  %}
     <tr>
         <th>Definition: </th><td>{{ concept.definition }}</td>
     </tr>
     {% endif %}
-
     {%  if concept.source is not none  %}
     <tr>
-        <th>Source</th><td>{{ format(concept.source) }}</td>
+        <th>Source</th><td>{{ concept.source }}</td>
+    </tr>
+    {% endif %}
+    {%  if concept.contributor is not none  %}
+    <tr>
+        <th>Contributor</th><td><a href="{{ concept.contributor }}">{{ concept.contributor }}</a></td>
     </tr>
     {% endif %}
 
-    {%  if concept.contributor  %}
-        {% for cont in concept.contributor %}
-            <tr>
-                <th>Contributor</th><td>{{ format(cont) }}</td>
-            </tr>
-        {% endfor %}
-
-    {% endif %}
-
     {% if concept.exactMatches %}
-        <tr>
-            <th>has exact match:</th>
-            {% for match in concept.exactMatches %}
-                <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
-            {% endfor %}
-        </tr>
+        <th>has exact match:</th>
+        {% for match in concept.exactMatches %}
+            <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
+        {% endfor %}
     {% endif %}
 
     {% if concept.closeMatches %}
-        <tr>
-            <th>has close match:</th>
-            {% for match in concept.closeMatches %}
-                <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
-            {% endfor %}
-        </tr>
+        <th>has close match:</th>
+        {% for match in concept.closeMatches %}
+            <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
+        {% endfor %}
     {% endif %}
 
     {% if concept.broadMatches %}
-        <tr>
-            <th>has broad match:</th>
-            {% for match in concept.broadMatches %}
-                <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
-            {% endfor %}
-        </tr>
+        <th>has broad match:</th>
+        {% for match in concept.broadMatches %}
+            <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
+        {% endfor %}
     {% endif %}
 
     {% if concept.narrowMatches %}
-        <tr>
-            <th>has narrow match:</th>
-            {% for match in concept.narrowMatches %}
-                <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
-            {% endfor %}
-        </tr>
+        <th>has narrow match:</th>
+        {% for match in concept.narrowMatches %}
+            <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
+        {% endfor %}
     {% endif %}
 
     {% if concept.relatedMatches %}
-        <tr>
-            <th>has related match:</th>
-            {% for match in concept.relatedMatches %}
-                <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
-            {% endfor %}
-        </tr>
+        <th>has related match:</th>
+        {% for match in concept.relatedMatches %}
+            <td><a href="{{ match }}">{{ h.make_title(match) }}</a></td>
+        {% endfor %}
     {% endif %}
 
     {% if concept.broaders|length > 0 %}
@@ -102,7 +73,7 @@
         <th>Broader</th>
         <td class="list">
             {% for broader in concept.broaders -%}
-            <a href="{{ request.base_url }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(broader) }}">{{ h.make_title(broader) }}</a><br />
+            <a href="{{ request.base_url }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(broader.uri) }}">{{ broader.prefLabel }}</a><br />
             {% endfor %}
         </td>
         {% endif %}
@@ -113,7 +84,7 @@
         <th style="padding-right: 10px;">Narrower: </th>
         <td class="list">
             {% for narrower in concept.narrowers -%}
-            <a href="{{ request.base_url }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(narrower) }}">{{ h.make_title(narrower) }}</a><br />
+            <a href="{{ request.base_url }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(narrower.uri) }}">{{ narrower.prefLabel }}</a><br />
             {% endfor %}
         </td>
     </tr>
