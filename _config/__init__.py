@@ -66,8 +66,8 @@ VOCABS = {
     'jena-fuseki-igsn': {
         'source': VocabSource.SPARQL,
         'title': 'jena-fuseki-igsn',
-        'sparql': 'http://test.loci.prov.ga.gov.au/fuseki/Andrew_IGSN_Test/query',
-        'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/217/ga-stratigraphic-rank.ttl'
+        'sparql': 'http://test.loci.prov.ga.gov.au/fuseki//fuseki/rdf_updater_test_dataset/query',
+        'download': 'rdf_test'
     },
     # 'assoc': {
     #     'source': VocabSource.FILE,
