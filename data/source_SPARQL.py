@@ -24,8 +24,39 @@ class SPARQL(Source):
 
     @classmethod
     def list_vocabularies(self):
-        # this needs to be a static list as we don't want all RVA vocabs
-        pass
+        '''
+        Return dict templated from source_VOCBENCG
+        '''
+        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql.setQuery('''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+
+SELECT distinct ?vocab ?vocab_label
+
+WHERE {
+    GRAPH ?graph {
+        {
+            {?vocab a skos:Collection .}
+            UNION {?vocab a skos:ConceptScheme .}
+            }
+        OPTIONAL {
+            {?vocab dct:title ?vocab_label .} 
+            UNION {?vocab rdfs:label ?vocab_label .}
+            }
+        FILTER(lang(?concept_preflabel) = "en" || lang(?concept_preflabel) = "")
+    }
+}
+ORDER BY ?vocab''')
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()['results']['bindings']
+
+        #return [(x.get('c').get('value'), x.get('l').get('value')) for result in results]
+        return {result['vocab']['value']: {'source': config.VocabSource.SPARQL,
+                                           'title': result['vocab_label']['value']}
+                for result in results
+                }
+
 
     def list_collections(self):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
