@@ -287,7 +287,7 @@ ORDER BY ?m'''.format(uri=uri)
         )
 
     def get_concept(self, uri):
-
+        print("Get Concept")
         print("VOCAB ID" + str(self.vocab_id))
 
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
@@ -383,9 +383,11 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:broader ?b .
         ?b skos:prefLabel ?pl .
+        }}
     }}
 ORDER BY ?b'''.format(uri=uri)
         sparql.setQuery(q)
+        print(q)
         sparql.setReturnFormat(JSON)
         broaders = None
         try:
@@ -412,6 +414,7 @@ WHERE {{
         }}
     }}
 ORDER BY ?n'''.format(uri=uri)
+
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         narrowers = None

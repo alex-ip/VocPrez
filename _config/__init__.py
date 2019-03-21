@@ -78,12 +78,12 @@ VOCABS = {
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
     },
-    'vertical_class': {
+    'eventprocess': {
         'source': VocabSource.SPARQL,
-        'title': 'Vertical Class (SPARQL)',
+        'title': 'Event Process (SPARQL)',
         'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
         'download': 'rdf_test',
-        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/Vertical_Class',
+        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/eventprocess',
     },
     'CGI alteration_type': {
         'source': VocabSource.SPARQL,
