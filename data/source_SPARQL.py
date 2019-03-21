@@ -514,10 +514,13 @@ ORDER BY ?preflabel'''.format(uri=uri)
         )
 
     def get_concept_hierarchy(self):
+        '''
+        Function to draw concept hierarchy for vocabulary
+        '''
         def build_hierarchy(bindings_list, broader_concept=None, level=0):
             '''
-            Recursive helper function to build hierarchy list
-            Returns list of tuples: (level, concept, concept_preflabel, broader_concept)
+            Recursive helper function to build hierarchy list from a bindings list
+            Returns list of tuples: (<level>, <concept>, <concept_preflabel>, <broader_concept>)
             '''
             level += 1 # Start with level 1 for top concepts
             hierarchy = []
@@ -578,6 +581,7 @@ ORDER BY ?concept'''.format(vocab_uri=self.uri)
         hierarchy = build_hierarchy(bindings_list)
 
         return Source.draw_concept_hierarchy(hierarchy, self.request, self.vocab_id)
+
 
     @staticmethod
     def build_concept_hierarchy(vocab_id):
