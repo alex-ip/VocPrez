@@ -105,8 +105,8 @@ ORDER BY ?vocab''')
                 ?c a skos:Concept .
                 ?c skos:prefLabel ?pl .
                 }}
-                    FILTER(?s = <{}>)
-        }}'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+                    FILTER(?s = <{vocab_uri}>)
+        }}'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print("List Concepts Query: " + str(query))
         sparql.setQuery(query)
 
@@ -137,7 +137,7 @@ ORDER BY ?vocab''')
             {{?s dct:title ?t .}}
             UNION {{?s rdfs:label ?t .}}
             }}
-            FILTER(?s = <{}>)
+            FILTER(?s = <{vocab_uri}>)
             OPTIONAL {{?s dct:description ?d }}
             OPTIONAL {{?s dct:creator ?c }}
             OPTIONAL {{?s dct:created ?cr }}
@@ -145,7 +145,7 @@ ORDER BY ?vocab''')
             OPTIONAL {{?s owl:versionInfo ?v }}
             }}
         }}
-        ORDER BY ?s'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        ORDER BY ?s'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
@@ -171,7 +171,7 @@ ORDER BY ?vocab''')
                 {{
                     ?s skos:hasTopConcept ?tc .
                     ?tc skos:prefLabel ?pl .
-                    FILTER(?s = <{0}>)
+                    FILTER(?s = <{vocab_uri}>)
                     }}
                 UNION {{
                     {{
@@ -181,11 +181,11 @@ ORDER BY ?vocab''')
                     ?tc skos:prefLabel ?pl .
                     OPTIONAL {{?tc skos:broader ?broader_concept .}}
                     FILTER (!bound(?broader_concept))
-                    FILTER(?s = <{0}>)
+                    FILTER(?s = <{vocab_uri}>)
                     }}
                 }}
             }}
-        ORDER BY ?s ?tc'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        ORDER BY ?s ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
@@ -248,7 +248,7 @@ WHERE {{
             }}
         OPTIONAL {{?s rdfs:comment ?c }}
         }}
-    }}'''.format({'uri': uri})
+    }}'''.format(uri=uri)
        
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
@@ -268,11 +268,11 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:member ?m .
+        <{uri}> skos:member ?m .
         ?m skos:prefLabel ?pl .
         }}
     }}
-ORDER BY ?m'''.format(uri)
+ORDER BY ?m'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         members = sparql.query().convert()['results']['bindings']
@@ -304,10 +304,10 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:prefLabel ?pl .
+        <{uri}> skos:prefLabel ?pl .
         OPTIONAL {{?s skos:definition ?d .}}
         }}
-    }}'''.format(uri)
+    }}'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         metadata = None
@@ -329,10 +329,10 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:altLabel ?al .
+        <{uri}> skos:altLabel ?al .
         }}
     }}
-ORDER BY ?al'''.format(uri)
+ORDER BY ?al'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         altLabels = None
@@ -354,11 +354,11 @@ ORDER BY ?al'''.format(uri)
 SELECT DISTINCT *
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:hiddenLabel ?hl .
+        <{uri}> skos:hiddenLabel ?hl .
         ?hl skos:prefLabel ?pl .
         }}
     }}
-ORDER BY ?pl ?hl'''.format(uri)
+ORDER BY ?pl ?hl'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         hiddenLabels = None
@@ -381,10 +381,10 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:broader ?b .
+        <{uri}> skos:broader ?b .
         ?b skos:prefLabel ?pl .
     }}
-ORDER BY ?b'''.format(uri)
+ORDER BY ?b'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         broaders = None
@@ -407,11 +407,11 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:narrower ?n .
+        <{uri}> skos:narrower ?n .
         ?n skos:prefLabel ?pl .
         }}
     }}
-ORDER BY ?n'''.format(uri)
+ORDER BY ?n'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         narrowers = None
@@ -433,10 +433,10 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> dct:source ?source .
+        <{uri}> dct:source ?source .
         }}
     }}
-ORDER BY ?source'''.format(uri)
+ORDER BY ?source'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         source = None
@@ -458,10 +458,10 @@ SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:definition ?definition .
+        <{uri}> skos:definition ?definition .
         }}
     }}
-ORDER BY ?definition'''.format(uri)
+ORDER BY ?definition'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         definition = None
@@ -482,10 +482,10 @@ ORDER BY ?definition'''.format(uri)
 SELECT DISTINCT *
 WHERE {{
     GRAPH ?graph {{
-        <{}> skos:prefLabel ?prefLabel .
+        <{uri}> skos:prefLabel ?prefLabel .
         }}
     }}
-ORDER BY ?preflabel'''.format(uri)
+ORDER BY ?preflabel'''.format(uri=uri)
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
         try:
@@ -527,12 +527,12 @@ WHERE {{
         ?mid    (skos:hasTopConcept | skos:narrower)+   ?c .                      
         ?c      skos:prefLabel                          ?pl .
         ?c		(skos:topConceptOf | skos:broader)		?parent .
-        FILTER (?cs = <{}>)
+        FILTER (?cs = <{uri}>)
         }}
     }}
 GROUP BY ?c ?pl ?parent
 ORDER BY ?length ?parent ?pl
-    """.format(self.uri)
+    """.format(uri=self.uri)
         )
         print(self.uri)
         sparql.setReturnFormat(JSON)
@@ -624,9 +624,9 @@ ORDER BY ?length ?parent ?pl
         q = '''SELECT ?c
 WHERE {{
     GRAPH ?graph {{
-        <{}> a ?c .
+        <{uri}> a ?c .
         }}
-    }}'''.format(uri)
+    }}'''.format(uri=uri)
         sparql.setQuery(q)
 
         sparql.setReturnFormat(JSON)
