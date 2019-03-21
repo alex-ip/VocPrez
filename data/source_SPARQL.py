@@ -171,7 +171,7 @@ ORDER BY ?vocab''')
                 {{
                     ?s skos:hasTopConcept ?tc .
                     ?tc skos:prefLabel ?pl .
-                    FILTER(?s = <{vocab_uri}>)
+                    FILTER(?s = <{0}>)
                     }}
                 UNION {{
                     {{
@@ -181,11 +181,11 @@ ORDER BY ?vocab''')
                     ?tc skos:prefLabel ?pl .
                     OPTIONAL {{?tc skos:broader ?broader_concept .}}
                     FILTER (!bound(?broader_concept))
-                    FILTER(?s = <{vocab_uri}>)
+                    FILTER(?s = <{0}>)
                     }}
                 }}
             }}
-        ORDER BY ?s ?tc'''.format({'{vocab_uri}': config.VOCABS.get(self.vocab_id).get('vocab_uri')})
+        ORDER BY ?s ?tc'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
@@ -495,20 +495,26 @@ ORDER BY ?preflabel'''.format(uri)
 
         from model.concept import Concept
         return Concept(
-            self.vocab_id,
-            uri,
-            prefLabel,
-            definition,
-            [x.get('al').get('value') for x in altLabels],
-            [x.get('hl').get('value') for x in hiddenLabels],
-            source,
-            metadata[0].get('cn').get('value') if metadata[0].get('cn') is not None else None,
-            [{'uri': x.get('b').get('value'), 'prefLabel': x.get('pl').get('value')} for x in broaders],
-            [{'uri': x.get('n').get('value'), 'prefLabel': x.get('pl').get('value')} for x in narrowers],
-            None  # TODO: replace Sem Properties sub
+            vocab_id=self.vocab_id,
+            uri=uri,
+            prefLabel=prefLabel,
+            definition=definition,
+            altLabels=[x.get('al').get('value') for x in altLabels],
+            hiddenLabels=[x.get('hl').get('value') for x in hiddenLabels],
+            source=source,
+            contributor=metadata[0].get('cn').get('value') if metadata[0].get('cn') is not None else None,
+            broaders=[{'uri': x.get('b').get('value'), 'prefLabel': x.get('pl').get('value')} for x in broaders] if broaders else [],
+            narrowers=[{'uri': x.get('n').get('value'), 'prefLabel': x.get('pl').get('value')} for x in narrowers] if narrowers else [],
+            exactMatches=None,
+            closeMatches=metadata[0].get('cn').get('value') if metadata[0].get('cn') is not None else [],
+            broadMatches=[],
+            narrowMatches=[],
+            relatedMatches=[],
+            semantic_properties=[]
         )
 
     def get_concept_hierarchy(self):
+        print("HERE")
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         sparql.setQuery(
             """PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -528,14 +534,17 @@ GROUP BY ?c ?pl ?parent
 ORDER BY ?length ?parent ?pl
     """.format(self.uri)
         )
+        print(self.uri)
         sparql.setReturnFormat(JSON)
         cs = sparql.query().convert()['results']['bindings']
-
+        print(cs)
         hierarchy = []
         previous_parent_uri = None
         last_index = 0
 
         for c in cs:
+
+            print(c)
             # insert all topConceptOf directly
             if str(c['parent']['value']) == self.uri:
                 hierarchy.append((

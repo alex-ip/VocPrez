@@ -91,6 +91,23 @@ VOCABS = {
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     },
+    'methodType': {
+        'source': VocabSource.SPARQL,
+        'title': 'Method Type',
+        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'download': 'rdf_test',
+        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/methodType',
+    },
+    # 'methodType': {
+    #     'source': VocabSource.SPARQL,
+    #     'title': 'Method Type',
+    #     'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+    #     'download': 'rdf_test',
+    #     'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
+    # },
+
+
+
     # 'assoc': {
     #     'source': VocabSource.FILE,
     #     'title': 'ISO19115-1 Association Type Codes - File'
