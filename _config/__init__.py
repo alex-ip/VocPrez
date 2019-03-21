@@ -65,38 +65,46 @@ VOCABS = {
     },
     'jena-fuseki-igsn': {
         'source': VocabSource.SPARQL,
-        'title': 'jena-fuseki-igsn',
+        'title': 'jena-fuseki-igsn (SPARQL)',
         'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
         'download': 'rdf_test',
-        'fuseki_dataset' : 'yes'
+        'fuseki_dataset' : 'yes',
+        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode',
     },
     'igsn-accessType': {
         'source': VocabSource.SPARQL,
-        'title': 'IGSN Access Type',
+        'title': 'IGSN Access Type (SPARQL)',
         'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
     },
     'vertical_class': {
         'source': VocabSource.SPARQL,
-        'title': 'Vertical Class',
+        'title': 'Vertical Class (SPARQL)',
         'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/Vertical_Class',
     },
-    'alteration_type': {
+    'CGI alteration_type': {
         'source': VocabSource.SPARQL,
-        'title': 'Alteration Type',
+        'title': 'CGI Alteration Type (SPARQL)',
         'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     },
-    'methodType': {
+    'IGSN methodType': {
         'source': VocabSource.SPARQL,
-        'title': 'Method Type',
+        'title': 'IGSN Method Type (SPARQL)',
         'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/methodType',
+    },
+    'CGI Simple Lithology': {
+        'source': VocabSource.SPARQL,
+        'title': 'CGI Simple Lithology (SPARQL)',
+        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'download': 'rdf_test',
+        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/lithology',
     },
     # 'methodType': {
     #     'source': VocabSource.SPARQL,
