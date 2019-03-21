@@ -514,84 +514,69 @@ ORDER BY ?preflabel'''.format(uri=uri)
         )
 
     def get_concept_hierarchy(self):
-        print("HERE")
+        def build_hierarchy(bindings_list, broader_concept=None, level=0):
+            '''
+            Recursive helper function to build hierarchy list
+            Returns list of tuples: (level, concept, concept_preflabel, broader_concept)
+            '''
+            level += 1 # Start with level 1 for top concepts
+            hierarchy = []
+           
+            narrower_list = sorted([binding_dict 
+                                    for binding_dict in bindings_list
+                                    if 
+                                        # Top concept
+                                        ((broader_concept is None) 
+                                         and (binding_dict.get('broader_concept') is None))
+                                    or 
+                                        # Narrower concept
+                                        ((binding_dict.get('broader_concept') is not None) 
+                                         and (binding_dict['broader_concept']['value'] == broader_concept))
+                             ], key=lambda binding_dict: binding_dict['concept']['value']) 
+            #print(broader_concept, narrower_list)
+            for binding_dict in narrower_list: 
+                concept = binding_dict['concept']['value']              
+                hierarchy += [(level,
+                               concept,
+                               binding_dict['concept_preflabel']['value'],
+                               binding_dict['broader_concept']['value'] if binding_dict.get('broader_concept') else None,
+                               )
+                              ] + build_hierarchy(bindings_list, concept, level)
+            #print(level, hierarchy)
+            return hierarchy
+                
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
-        sparql.setQuery(
-            """PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
 
-SELECT DISTINCT (COUNT(?mid) AS ?length) ?c ?pl ?parent
+SELECT distinct ?concept ?concept_preflabel ?broader_concept
+
 WHERE {{
     GRAPH ?graph {{
-        <{vocab_uri}>      a                                           skos:Concept .   
-            {{<{vocab_uri}>     (skos:hasTopConcept | skos:narrower)*   ?mid .}}
-            UNION {{
-                {{
-                    {{<{vocab_uri}> skos:member ?mid .}}
-                    UNION {{?mid skos:inScheme <{vocab_uri}> .}}
-                    }}
-                    OPTIONAL {{?mid skos:broader ?broader_concept .}}
-                    FILTER (!bound(?broader_concept))            
+        {{
+            {{<{vocab_uri}> a skos:Collection .}}
+            UNION {{<{vocab_uri}> a skos:ConceptScheme .}}
             }}
-        ?mid    (skos:hasTopConcept | skos:narrower)+   ?c .                      
-        ?c      skos:prefLabel                          ?pl .
-        ?c		(skos:topConceptOf | skos:broader)		?parent .
-        }}
+        {{
+            {{<{vocab_uri}> skos:member ?concept .}}
+            UNION {{?concept skos:inScheme <{vocab_uri}> .}}
+            }}
+        ?concept skos:prefLabel ?concept_preflabel .
+        OPTIONAL {{?concept skos:definition ?concept_description .}}
+        OPTIONAL {{?concept skos:broader ?broader_concept .}}
+        FILTER(lang(?concept_preflabel) = "en" || lang(?concept_preflabel) = "")
     }}
-GROUP BY ?c ?pl ?parent
-ORDER BY ?length ?parent ?pl
-    """.format(vocab_uri=self.uri)
-        )
-        print(self.uri)
+}}
+ORDER BY ?concept'''.format(vocab_uri=self.uri)
+        print(query)
+        sparql.setQuery(query)
+        
         sparql.setReturnFormat(JSON)
-        cs = sparql.query().convert()['results']['bindings']
-        print(cs)
-        hierarchy = []
-        previous_parent_uri = None
-        last_index = 0
+        bindings_list = sparql.query().convert()['results']['bindings']
+        
+        hierarchy = build_hierarchy(bindings_list)
 
-        for c in cs:
-
-            print(c)
-            # insert all topConceptOf directly
-            if str(c['parent']['value']) == self.uri:
-                hierarchy.append((
-                    int(c['length']['value']),
-                    c['c']['value'],
-                    c['pl']['value'],
-                    None
-                ))
-            else:
-                # If this is not a topConcept, see if it has the same URI as the previous inserted Concept
-                # If so, use that Concept's index + 1
-                this_parent = c['parent']['value']
-                if this_parent == previous_parent_uri:
-                    # use last inserted index
-                    hierarchy.insert(last_index + 1, (
-                        int(c['length']['value']),
-                        c['c']['value'],
-                        c['pl']['value'],
-                        c['parent']['value']
-                    ))
-                    last_index += 1
-                # This is not a TopConcept and it has a differnt parent from the previous insert
-                # So insert it after it's parent
-                else:
-                    i = 0
-                    parent_index = 0
-                    for t in hierarchy:
-                        if this_parent in t[1]:
-                            parent_index = i
-                        i += 1
-
-                    hierarchy.insert(parent_index + 1, (
-                        int(c['length']['value']),
-                        c['c']['value'],
-                        c['pl']['value'],
-                        c['parent']['value']
-                    ))
-
-                    last_index = parent_index + 1
-                previous_parent_uri = this_parent
         return Source.draw_concept_hierarchy(hierarchy, self.request, self.vocab_id)
 
     @staticmethod
