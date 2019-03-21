@@ -165,15 +165,27 @@ ORDER BY ?vocab''')
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
         PREFIX dct: <http://purl.org/dc/terms/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        SELECT DISTINCT *
+        SELECT DISTINCT ?s ?tc ?pl
         WHERE {{
             GRAPH ?graph {{
-                ?s skos:hasTopConcept ?tc .
-                ?tc skos:prefLabel ?pl .
-                FILTER(?s = <{}>)
+                {{
+                    ?s skos:hasTopConcept ?tc .
+                    ?tc skos:prefLabel ?pl .
+                    FILTER(?s = <{vocab_uri}>)
+                    }}
+                UNION {{
+                    {{
+                        {{?s skos:member ?tc .}}
+                        UNION {{?tc skos:inScheme ?s .}}
+                        }}
+                    ?tc skos:prefLabel ?pl .
+                    OPTIONAL {{?tc skos:broader ?broader_concept .}}
+                    FILTER (!bound(?broader_concept))
+                    FILTER(?s = <{vocab_uri}>)
+                    }}
                 }}
             }}
-        ORDER BY ?s ?tc'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        ORDER BY ?s ?tc'''.format({'{vocab_uri}': config.VOCABS.get(self.vocab_id).get('vocab_uri')})
         print(query)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
