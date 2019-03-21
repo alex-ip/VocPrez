@@ -522,17 +522,24 @@ ORDER BY ?preflabel'''.format(uri=uri)
 SELECT DISTINCT (COUNT(?mid) AS ?length) ?c ?pl ?parent
 WHERE {{
     GRAPH ?graph {{
-        ?c      a                                       skos:Concept .   
-        ?cs     (skos:hasTopConcept | skos:narrower)*   ?mid .
+        <{vocab_uri}>      a                                           skos:Concept .   
+            {{<{vocab_uri}>     (skos:hasTopConcept | skos:narrower)*   ?mid .}}
+            UNION {{
+                {{
+                    {{<{vocab_uri}> skos:member ?mid .}}
+                    UNION {{?mid skos:inScheme <{vocab_uri}> .}}
+                    }}
+                    OPTIONAL {{?mid skos:broader ?broader_concept .}}
+                    FILTER (!bound(?broader_concept))            
+            }}
         ?mid    (skos:hasTopConcept | skos:narrower)+   ?c .                      
         ?c      skos:prefLabel                          ?pl .
         ?c		(skos:topConceptOf | skos:broader)		?parent .
-        FILTER (?cs = <{uri}>)
         }}
     }}
 GROUP BY ?c ?pl ?parent
 ORDER BY ?length ?parent ?pl
-    """.format(uri=self.uri)
+    """.format(vocab_uri=self.uri)
         )
         print(self.uri)
         sparql.setReturnFormat(JSON)
