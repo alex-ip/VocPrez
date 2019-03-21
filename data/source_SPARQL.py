@@ -33,7 +33,6 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
 
 SELECT distinct ?vocab ?vocab_label
-
 WHERE {
     GRAPH ?graph {
         {
@@ -60,6 +59,7 @@ ORDER BY ?vocab''')
 
     def list_collections(self):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        print("LIST COLLECTIONS")
         #=======================================================================
         # sparql.setQuery('''
         #     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -71,39 +71,45 @@ ORDER BY ?vocab''')
         #     }''')
         #=======================================================================
         sparql.setQuery('''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX dct: <http://purl.org/dc/terms/>
-
-SELECT DISTINCT *
-
-WHERE {
-    GRAPH ?graph {
-        {
-            {?c a skos:Collection .}
-            UNION {?c a skos:ConceptScheme .}
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        PREFIX dct: <http://purl.org/dc/terms/>
+        
+        SELECT DISTINCT *
+        WHERE {
+            GRAPH ?graph {
+                {
+                    {?c a skos:Collection .}
+                    UNION {?c a skos:ConceptScheme .}
+                    }
+                OPTIONAL {
+                    {?c dct:title ?l .} 
+                    UNION {?c rdfs:label ?l .}
+                    }
+                }
             }
-        OPTIONAL {
-            {?c dct:title ?l .} 
-            UNION {?c rdfs:label ?l .}
-            }
-        }
-    }
-ORDER BY ?c ?l''')
+        ORDER BY ?c ?l''')
         sparql.setReturnFormat(JSON)
         concepts = sparql.query().convert()['results']['bindings']
 
         return [(x.get('c').get('value'), x.get('l').get('value')) for x in concepts]
 
     def list_concepts(self):
+        print("VOCAB ID")
+        print(self.vocab_id)
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
-        sparql.setQuery('''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
-WHERE {
-    GRAPH ?graph {
-        ?c a skos:Concept .
-        ?c skos:prefLabel ?pl .
-        }
-    }''')
+
+        query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        SELECT DISTINCT *
+        WHERE {{
+            GRAPH ?graph {{
+                ?c a skos:Concept .
+                ?c skos:prefLabel ?pl .
+                }}
+                    FILTER(?s = <{}>)
+        }}'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        print("List Concepts Query: " + str(query))
+        sparql.setQuery(query)
+
         sparql.setReturnFormat(JSON)
         concepts = sparql.query().convert()['results']['bindings']
 
@@ -111,32 +117,37 @@ WHERE {
 
     def get_vocabulary(self):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
-
+        print("VOCAB ID: " + str(self.vocab_id))
         # get the basic vocab metadata
         # PREFIX%20skos%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2004%2F02%2Fskos%2Fcore%23%3E%0APREFIX%20dct%3A%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0APREFIX%20owl%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0ASELECT%20*%0AWHERE%20%7B%0A%3Fs%20a%20skos%3AConceptScheme%20%3B%0Adct%3Atitle%20%3Ft%20%3B%0Adct%3Adescription%20%3Fd%20%3B%0Adct%3Acreator%20%3Fc%20%3B%0Adct%3Acreated%20%3Fcr%20%3B%0Adct%3Amodified%20%3Fm%20%3B%0Aowl%3AversionInfo%20%3Fv%20.%0A%7D
-        sparql.setQuery('''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
-SELECT DISTINCT *
-WHERE {
-    GRAPH ?graph {
-        {
-            {?s a skos:ConceptScheme .}
-            UNION {?s a skos:Collection .}
-            }
-        {
-            {?s dct:title ?t .}
-            UNION {?s rdfs:label ?t .}
-            }
-        OPTIONAL {?s dct:description ?d }
-        OPTIONAL {?s dct:creator ?c }
-        OPTIONAL {?s dct:created ?cr }
-        OPTIONAL {?s dct:modified ?m }
-        OPTIONAL {?s owl:versionInfo ?v }
-        }
-    }
-ORDER BY ?s''')
+
+        query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        PREFIX dct: <http://purl.org/dc/terms/>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        SELECT DISTINCT *
+        WHERE {{
+        GRAPH ?graph 
+        {{
+            {{
+            {{?s a skos:ConceptScheme .}}
+            UNION {{?s a skos:Collection .}}
+            }}
+            {{
+            {{?s dct:title ?t .}}
+            UNION {{?s rdfs:label ?t .}}
+            }}
+            FILTER(?s = <{}>)
+            OPTIONAL {{?s dct:description ?d }}
+            OPTIONAL {{?s dct:creator ?c }}
+            OPTIONAL {{?s dct:created ?cr }}
+            OPTIONAL {{?s dct:modified ?m }}
+            OPTIONAL {{?s owl:versionInfo ?v }}
+            }}
+        }}
+        ORDER BY ?s'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        print(query)
+        sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         metadata = sparql.query().convert()
 
@@ -150,18 +161,21 @@ ORDER BY ?s''')
         #       ?tc skos:prefLabel ?pl .
         #     }''')
         #=======================================================================
-        sparql.setQuery('''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
-SELECT DISTINCT *
-WHERE {
-    GRAPH ?graph {
-        ?s skos:hasTopConcept ?tc .
-        ?tc skos:prefLabel ?pl .
-        }
-    }
-ORDER BY ?s ?tc''')
+        query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        PREFIX dct: <http://purl.org/dc/terms/>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        SELECT DISTINCT *
+        WHERE {{
+            GRAPH ?graph {{
+                ?s skos:hasTopConcept ?tc .
+                ?tc skos:prefLabel ?pl .
+                FILTER(?s = <{}>)
+                }}
+            }}
+        ORDER BY ?s ?tc'''.format(config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        print(query)
+        sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         top_concepts = sparql.query().convert()['results']['bindings']
 
@@ -179,6 +193,7 @@ ORDER BY ?s ?tc''')
 
         from model.vocabulary import Vocabulary
         self.uri = metadata['results']['bindings'][0]['s']['value']
+        print("SELF.URI: " + str(self.uri))
         return Vocabulary(
             self.vocab_id,
             metadata['results']['bindings'][0]['s']['value'],
@@ -200,6 +215,7 @@ ORDER BY ?s ?tc''')
 
     def get_collection(self, uri):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        print("GET COLLECTION")
         #=======================================================================
         # q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         #     SELECT *
@@ -211,6 +227,7 @@ ORDER BY ?s ?tc''')
         q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX dct: <http://purl.org/dc/terms/>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         {
@@ -219,7 +236,7 @@ WHERE {{
             }}
         OPTIONAL {{?s rdfs:comment ?c }}
         }}
-    }}'''.format({'uri': uri})     
+    }}'''.format({'uri': uri})
        
         sparql.setQuery(q)
         sparql.setReturnFormat(JSON)
@@ -236,6 +253,7 @@ WHERE {{
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> skos:member ?m .
@@ -257,6 +275,9 @@ ORDER BY ?m'''.format(uri)
         )
 
     def get_concept(self, uri):
+
+        print("VOCAB ID" + str(self.vocab_id))
+
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         #=======================================================================
         # q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -268,6 +289,7 @@ ORDER BY ?m'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> skos:prefLabel ?pl .
@@ -292,6 +314,7 @@ WHERE {{
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> skos:altLabel ?al .
@@ -343,6 +366,7 @@ ORDER BY ?pl ?hl'''.format(uri)
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> skos:broader ?b .
@@ -368,6 +392,7 @@ ORDER BY ?b'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> skos:narrower ?n .
@@ -393,6 +418,7 @@ ORDER BY ?n'''.format(uri)
         #=======================================================================
         q = '''PREFIX dct: <http://purl.org/dc/terms/>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> dct:source ?source .
@@ -417,6 +443,7 @@ ORDER BY ?source'''.format(uri)
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
+
 WHERE {{
     GRAPH ?graph {{
         <{}> skos:definition ?definition .

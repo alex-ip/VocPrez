@@ -66,8 +66,30 @@ VOCABS = {
     'jena-fuseki-igsn': {
         'source': VocabSource.SPARQL,
         'title': 'jena-fuseki-igsn',
-        'sparql': 'http://test.loci.prov.ga.gov.au/fuseki//fuseki/rdf_updater_test_dataset/query',
-        'download': 'rdf_test'
+        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'download': 'rdf_test',
+        'fuseki_dataset' : 'yes'
+    },
+    'igsn-accessType': {
+        'source': VocabSource.SPARQL,
+        'title': 'IGSN Access Type',
+        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'download': 'rdf_test',
+        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
+    },
+    'vertical_class': {
+        'source': VocabSource.SPARQL,
+        'title': 'Vertical Class',
+        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'download': 'rdf_test',
+        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/Vertical_Class',
+    },
+    'alteration_type': {
+        'source': VocabSource.SPARQL,
+        'title': 'Alteration Type',
+        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'download': 'rdf_test',
+        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     },
     # 'assoc': {
     #     'source': VocabSource.FILE,
