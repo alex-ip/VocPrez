@@ -1,9 +1,25 @@
+.disabled a {
+    color: gray;
+}
+
+.active a {
+    font-weight: bold;
+}
+
+.pagination ul li {
+    display: inline;
+    margin-right: 20px;
+    border-style: outset;
+    border-width: 1px;
+    padding: 5px;
+}
+
 footer-contenttable {
     border-collapse: collapse;
 }
 
 table, th, td {
-    border: 1px solid black;
+    border: 1px solid #e4e4e4;
     text-align: left;
 }
 
@@ -48,10 +64,6 @@ a {
 a:hover {
     text-decoration: underline;
     color: rgb(179, 0, 0);
-}
-
-body {
-    text-align: center;
 }
 
 #widther {

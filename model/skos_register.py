@@ -4,9 +4,14 @@ from flask_paginate import Pagination
 
 
 class SkosRegisterRenderer(RegisterRenderer):
-    def __init__(self, request, navs, items, register_item_type_string, total):
+    def __init__(self, request, navs, items, register_item_type_string, total, search_enabled=None, search_query=None, contained_item_classes=[], **kwargs):
         self.navs = navs
+        self.items = items
         self.register_item_type_string = register_item_type_string
+        self.search_query = search_query
+        self.search_enabled = search_enabled
+        self.vocabulary_url = contained_item_classes
+        self.template_extras = kwargs
         views = {
             'ckan': View(
                 'Comprehensive Knowledge Archive Network',
@@ -18,13 +23,14 @@ class SkosRegisterRenderer(RegisterRenderer):
                 namespace='https://ckan.org/'
             )
         }
+
         super().__init__(
             request,
             request.base_url,
             "Test Label",
             "Test Comment",
             items,
-            register_item_type_string,
+            contained_item_classes,
             total,
             views=views
         )
@@ -66,20 +72,18 @@ class SkosRegisterRenderer(RegisterRenderer):
                 "bindings": []
             }
         }
-        for item in self.register_items:
-            response['results']['bindings'].append(
-                {
-                    "pl": {
-                        "xml:lang": "en",
-                        "type": "literal",
-                        "value": item[1]
-                    },
-                    "s": {
-                        "type": "uri",
-                        "value": item[0]
-                    }
+        for item in self.items:
+            response['results']['bindings'].append({
+                "pl": {
+                    "xml:lang": "en",
+                    "type": "literal",
+                    "value": item['title']
+                },
+                "s": {
+                    "type": "uri",
+                    "value": self.request.base_url + item['vocab_id']
                 }
-            )
+            })
 
         response = jsonify(response)
         response.headers.add('Access-Control-Allow-origin', '*')
@@ -93,7 +97,7 @@ class SkosRegisterRenderer(RegisterRenderer):
             'label': self.label,
             'comment': self.comment,
             'register_item_type_string': self.register_item_type_string,
-            'register_items': self.register_items,
+            'register_items': self.items,
             'page': self.page,
             'per_page': self.per_page,
             'first_page': self.first_page,
@@ -102,8 +106,14 @@ class SkosRegisterRenderer(RegisterRenderer):
             'last_page': self.last_page,
             'super_register': self.super_register,
             'pagination': pagination,
-            'navs': self.navs
+            'navs': self.navs,
+            'query': self.search_query,
+            'search_enabled': self.search_enabled,
+            'vocabulary_url': self.vocabulary_url,
+            'title': self.register_item_type_string
         }
+        if self.template_extras is not None:
+            _template_context.update(self.template_extras)
         if template_context is not None and isinstance(template_context, dict):
             _template_context.update(template_context)
 

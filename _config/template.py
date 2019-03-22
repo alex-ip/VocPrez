@@ -1,5 +1,6 @@
 from os import path
 from data.source_FILE import FILE
+from data.source_RVA import RVA
 # RVA doesnt need to be imported as it's list_vocabularies method isn't used- vocabs from that are statically listed
 from data.source_VOCBENCH import VOCBENCH
 
@@ -8,6 +9,14 @@ TEMPLATES_DIR = path.join(APP_DIR, 'view', 'templates')
 STATIC_DIR = path.join(APP_DIR, 'view', 'static')
 LOGFILE = APP_DIR + '/flask.log'
 DEBUG = True
+
+
+#
+# -- VocPrez Settings --------------------------------------------------------------------------------------------------
+#
+
+# Home title
+TITLE = 'VocPrez'
 
 
 #
@@ -75,16 +84,3 @@ VOCABS = {
         'title': 'Stratigraphic Rank - File'
     }
 }
-
-#
-# -- Startup tasks -----------------------------------------------------------------------------------------------------
-#
-
-# read in RDF vocab files on startup in vocab_files directory
-FILE.init()
-
-# extend this instances' list of vocabs by using the known sources
-VOCABS = {**VOCABS, **FILE.list_vocabularies()}  # picks up all vocab RDF (turtle) files in data/
-# VOCABS = {**VOCABS, **VOCBENCH.list_vocabularies()}  # picks up all vocabs at the relevant VocBench instance
-
-

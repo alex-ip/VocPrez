@@ -1,14 +1,40 @@
 import _config as config
 import sys
+from rdflib import Graph, URIRef
+from rdflib.namespace import SKOS
+import markdown
+import pickle
+import os
 
 
 class Source:
     VOC_TYPES = [
-        'http://purl.org/vocommons/voaf#Vocabulary'
+        'http://purl.org/vocommons/voaf#Vocabulary',
         'http://www.w3.org/2004/02/skos/core#ConceptScheme',
         'http://www.w3.org/2004/02/skos/core#ConceptCollection',
-        'http://www.w3.org/2004/02/skos/core#Concept'
+        'http://www.w3.org/2004/02/skos/core#Concept',
     ]
+
+    @staticmethod
+    def load_pickle_graph(vocab_id):
+        try:
+            with open(os.path.join(config.APP_DIR, 'vocab_files', vocab_id + '.p'), 'rb') as f:
+                g = pickle.load(f)
+                f.close()
+                return g
+        except Exception as e:
+            raise Exception(e)
+
+    @staticmethod
+    def pickle_to_file(vocab_id, g):
+        print('Pickling file: {}'.format(vocab_id))
+        path = os.path.join(config.APP_DIR, 'vocab_files', vocab_id)
+        # TODO: Check if file_name already has extension
+        with open(path + '.p', 'wb') as f:
+            pickle.dump(g, f)
+            f.close()
+
+        g.serialize(path + '.ttl', format='turtle')
 
     def _delegator(self, function_name):
         """
@@ -26,14 +52,15 @@ class Source:
 
         # delegate the constructor of this vocab's source the the specialised source, based on source_type
         if source_type == config.VocabSource.FILE:
-            return getattr(FILE(self.vocab_id), function_name)
+            return getattr(FILE(self.vocab_id, self.request), function_name)
         elif source_type == config.VocabSource.RVA:
-            return getattr(RVA(self.vocab_id), function_name)
+            return getattr(RVA(self.vocab_id, self.request), function_name)
         elif source_type == config.VocabSource.VOCBENCH:
-            return getattr(VOCBENCH(self.vocab_id), function_name)
+            return getattr(VOCBENCH(self.vocab_id, self.request), function_name)
 
-    def __init__(self, vocab_id):
+    def __init__(self, vocab_id, request):
         self.vocab_id = vocab_id
+        self.request = request
 
     @classmethod
     def list_vocabularies(self):
@@ -68,3 +95,81 @@ class Source:
         :rtype: :class:`string`
         """
         return self._delegator(sys._getframe().f_code.co_name)(uri)
+
+    @staticmethod
+    def get_prefLabel_from_uri(uri):
+        return ' '.join(str(uri).split('#')[-1].split('/')[-1].split('_'))
+
+    @staticmethod
+    def get_narrowers(uri, depth):
+        """
+        Recursively get all skos:narrower properties as a list.
+
+        :param uri: URI node
+        :param depth: The current depth
+        :param g: The graph
+        :return: list of tuples(tree_depth, uri, prefLabel)
+        :rtype: list
+        """
+        depth += 1
+
+        # Some RVA sources won't load on first try, so ..
+        # if failed, try load again.
+        g = None
+        max_attempts = 10
+        for i in range(max_attempts):
+            try:
+                g = Graph().parse(uri + '.ttl', format='turtle')
+                break
+            except:
+                print('Failed to load resource at URI {}. Attempt: {}.'.format(uri, i+1))
+        if not g:
+            raise Exception('Failed to load Graph from {}. Maximum attempts exceeded {}.'.format(uri, max_attempts))
+
+        items = []
+        for s, p, o in g.triples((None, SKOS.broader, URIRef(uri))):
+            items.append((depth, str(s), Source.get_prefLabel_from_uri(s)))
+        items.sort(key=lambda x: x[2])
+        count = 0
+        for item in items:
+            count += 1
+            new_items = Source.get_narrowers(item[1], item[0])
+            items = items[:count] + new_items + items[count:]
+            count += len(new_items)
+        return items
+
+    @staticmethod
+    def draw_concept_hierarchy(hierarchy, request, id):
+        tab = '\t'
+        previous_length = 1
+
+        text = ''
+        tracked_items = []
+        for item in hierarchy:
+            mult = None
+
+            if item[0] > previous_length + 2: # SPARQL query error on length value
+                for tracked_item in tracked_items:
+                    if tracked_item['name'] == item[3]:
+                        mult = tracked_item['indent'] + 1
+
+            if mult is None:
+                found = False
+                for tracked_item in tracked_items:
+                    if tracked_item['name'] == item[3]:
+                        found = True
+                if not found:
+                    mult = 0
+
+            if mult is None:#else: # everything is normal
+                mult = item[0] - 1
+
+            tag = str(mult+1) # indent info to be displayed
+
+            import helper as h
+            t = tab * mult + '* [' + item[2] + '](' + request.url_root + 'object?vocab_id=' + id + '&uri=' + h.url_encode(item[1]) + ') (' + tag + ')\n'
+            text += t
+            previous_length = mult
+            tracked_items.append({'name': item[1], 'indent': mult})
+
+        return markdown.markdown(text)

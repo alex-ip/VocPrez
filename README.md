@@ -1,5 +1,5 @@
 # VocPrez
-A read-only web delivery system for Simple Knowledge Organization System (SKOS)-formulated RDf vocabularies.
+A read-only web delivery system for Simple Knowledge Organization System (SKOS)-formulated RDF vocabularies.
 
 <img src="view/static/system.svg" style="width:60%;" />  
 
@@ -38,6 +38,11 @@ See the [requirements.txt](https://github.com/CSIRO-enviro-informatics/VocPrez/b
 
 ## License
 This code is licensed using the GPL v3 licence. See the [LICENSE file](LICENSE) for the deed.
+
+
+## Tests
+We use [pytest](https://docs.pytest.org/en/latest/) as our testing framework. Tests live in the [tests directory](_tests). These tests ensure that the endpoints are functioning as intended. See the [README.md](_tests/README.md) for the tests for more information.
+
 
 
 ## Contacts
