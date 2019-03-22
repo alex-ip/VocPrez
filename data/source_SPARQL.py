@@ -27,7 +27,7 @@ class SPARQL(Source):
         '''
         Return dict templated from source_VOCBENCG
         '''
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
         sparql.setQuery('''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
@@ -47,7 +47,7 @@ WHERE {
     }
 }
 ORDER BY ?vocab''')
-        sparql.setReturnFormat(JSON)
+        
         results = sparql.query().convert()['results']['bindings']
 
         #return [(x.get('c').get('value'), x.get('l').get('value')) for result in results]
@@ -58,7 +58,7 @@ ORDER BY ?vocab''')
 
 
     def list_collections(self):
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
         print("LIST COLLECTIONS")
         #=======================================================================
         # sparql.setQuery('''
@@ -88,7 +88,7 @@ ORDER BY ?vocab''')
                 }
             }
         ORDER BY ?c ?l''')
-        sparql.setReturnFormat(JSON)
+        
         concepts = sparql.query().convert()['results']['bindings']
 
         return [(x.get('c').get('value'), x.get('l').get('value')) for x in concepts]
@@ -96,28 +96,34 @@ ORDER BY ?vocab''')
     def list_concepts(self):
         print("VOCAB ID")
         print(self.vocab_id)
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
 
         query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        SELECT DISTINCT *
-        WHERE {{
-            GRAPH ?graph {{
-                ?c a skos:Concept .
-                ?c skos:prefLabel ?pl .
-                }}
-                    FILTER(?s = <{vocab_uri}>)
-        }}'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+SELECT DISTINCT *
+WHERE {{
+    GRAPH ?graph {{
+        {{
+            {{<{vocab_uri}> a skos:ConceptScheme .}}
+            UNION {{<{vocab_uri}> a skos:Collection .}}
+            }}
+        {{
+            {{<{vocab_uri}> skos:member ?c .}}
+            UNION {{?c skos:inScheme <{vocab_uri}> .}}
+            }}
+        ?c a skos:Concept .
+        ?c skos:prefLabel ?pl .
+        }}
+    }}'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print("List Concepts Query: " + str(query))
         sparql.setQuery(query)
 
-        sparql.setReturnFormat(JSON)
+        
         concepts = sparql.query().convert()['results']['bindings']
 
         return [(x.get('c').get('value'), x.get('pl').get('value')) for x in concepts]
 
     def get_vocabulary(self):
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
-        print("VOCAB ID: " + str(self.vocab_id))
+        sparql = self.get_sparqlwrapper()
         # get the basic vocab metadata
         # PREFIX%20skos%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2004%2F02%2Fskos%2Fcore%23%3E%0APREFIX%20dct%3A%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0APREFIX%20owl%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0ASELECT%20*%0AWHERE%20%7B%0A%3Fs%20a%20skos%3AConceptScheme%20%3B%0Adct%3Atitle%20%3Ft%20%3B%0Adct%3Adescription%20%3Fd%20%3B%0Adct%3Acreator%20%3Fc%20%3B%0Adct%3Acreated%20%3Fcr%20%3B%0Adct%3Amodified%20%3Fm%20%3B%0Aowl%3AversionInfo%20%3Fv%20.%0A%7D
 
@@ -148,7 +154,7 @@ ORDER BY ?vocab''')
         ORDER BY ?s'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
+        
         metadata = sparql.query().convert()
 
         # get the vocab's top concepts
@@ -188,7 +194,7 @@ ORDER BY ?vocab''')
         ORDER BY ?s ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
+        
         top_concepts = sparql.query().convert()['results']['bindings']
 
         # TODO: check if there are any common ways to ascertain if a vocab/ConceptScheme has any Collections
@@ -200,7 +206,7 @@ ORDER BY ?vocab''')
         #       ?s skos:hasTopConcept ?tc .
         #       ?tc skos:prefLabel ?pl .
         #     }''')
-        # sparql.setReturnFormat(JSON)
+        # 
         # top_concepts = sparql.query().convert()['results']['bindings']
 
         from model.vocabulary import Vocabulary
@@ -226,7 +232,7 @@ ORDER BY ?vocab''')
         )
 
     def get_collection(self, uri):
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
         print("GET COLLECTION")
         #=======================================================================
         # q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -251,7 +257,7 @@ WHERE {{
     }}'''.format(uri=uri)
        
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         metadata = sparql.query().convert()['results']['bindings']
 
         # get the collection's members
@@ -274,7 +280,7 @@ WHERE {{
     }}
 ORDER BY ?m'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         members = sparql.query().convert()['results']['bindings']
 
         from model.collection import Collection
@@ -290,7 +296,7 @@ ORDER BY ?m'''.format(uri=uri)
         print("Get Concept")
         print("VOCAB ID" + str(self.vocab_id))
 
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
         #=======================================================================
         # q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
         #     SELECT *
@@ -309,7 +315,7 @@ WHERE {{
         }}
     }}'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         metadata = None
         try:
             metadata = sparql.query().convert()['results']['bindings']
@@ -334,7 +340,7 @@ WHERE {{
     }}
 ORDER BY ?al'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         altLabels = None
         try:
             altLabels = sparql.query().convert()['results']['bindings']
@@ -360,7 +366,7 @@ WHERE {{
     }}
 ORDER BY ?pl ?hl'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         hiddenLabels = None
         try:
             hiddenLabels = sparql.query().convert()['results']['bindings']
@@ -388,7 +394,7 @@ WHERE {{
 ORDER BY ?b'''.format(uri=uri)
         sparql.setQuery(q)
         print(q)
-        sparql.setReturnFormat(JSON)
+        
         broaders = None
         try:
             broaders = sparql.query().convert()['results']['bindings']
@@ -416,7 +422,7 @@ WHERE {{
 ORDER BY ?n'''.format(uri=uri)
 
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         narrowers = None
         try:
             narrowers = sparql.query().convert()['results']['bindings']
@@ -441,7 +447,7 @@ WHERE {{
     }}
 ORDER BY ?source'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         source = None
         try:
             source = sparql.query().convert()['results']['bindings'][0]['source']['value']
@@ -466,7 +472,7 @@ WHERE {{
     }}
 ORDER BY ?definition'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         definition = None
         try:
             definition = sparql.query().convert()['results']['bindings'][0]['definition']['value']
@@ -490,7 +496,7 @@ WHERE {{
     }}
 ORDER BY ?preflabel'''.format(uri=uri)
         sparql.setQuery(q)
-        sparql.setReturnFormat(JSON)
+        
         try:
             prefLabel = sparql.query().convert()['results']['bindings'][0]['prefLabel']['value']
         except:
@@ -551,7 +557,7 @@ ORDER BY ?preflabel'''.format(uri=uri)
             #print(level, hierarchy)
             return hierarchy
                 
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
         query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
@@ -578,7 +584,6 @@ ORDER BY ?concept'''.format(vocab_uri=self.uri)
         print(query)
         sparql.setQuery(query)
         
-        sparql.setReturnFormat(JSON)
         bindings_list = sparql.query().convert()['results']['bindings']
         
         hierarchy = build_hierarchy(bindings_list)
@@ -611,7 +616,7 @@ ORDER BY ?concept'''.format(vocab_uri=self.uri)
             raise Exception('topConcept not found')
 
     def get_object_class(self, uri):
-        sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql = self.get_sparqlwrapper()
         #=======================================================================
         # q = '''
         #     SELECT ?c
@@ -628,9 +633,23 @@ WHERE {{
     }}'''.format(uri=uri)
         sparql.setQuery(q)
 
-        sparql.setReturnFormat(JSON)
+        
         for c in sparql.query().convert()['results']['bindings']:
             if c.get('c')['value'] in self.VOC_TYPES:
                 return c.get('c')['value']
 
         return None
+
+    def get_sparqlwrapper(self):
+        '''
+        Helper function to set up and return a SPARQLWrapper instance
+        '''
+        sparql_wrapper = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
+        sparql_wrapper.setReturnFormat(JSON)
+        
+        if (hasattr(config, 'SPARQL_CREDENTIALS')
+            and config.SPARQL_CREDENTIALS.get(config.VOCABS.get(self.vocab_id).get('sparql'))):
+            sparql_credentials = config.SPARQL_CREDENTIALS[config.VOCABS.get(self.vocab_id).get('sparql')]
+            sparql_wrapper.setCredentials(sparql_credentials['username'], sparql_credentials['password'])
+        
+        return sparql_wrapper

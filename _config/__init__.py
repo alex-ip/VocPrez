@@ -37,6 +37,17 @@ VB_ENDPOINT = ''
 VB_USER = ''
 VB_PASSWORD = ''
 
+# Configure login credentials for different SPARQL endpoints here
+SPARQL_CREDENTIALS = {
+    'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs':
+    {'username': 'vocabmanager',
+     'password': 'vocab1234%^&*'
+      },
+    'http://52.65.31.119/fuseki/vocabs':
+    {'username': 'vocabmanager',
+     'password': 'vocab1234%^&*'
+      },
+    }
 #
 #   Instance vocabularies
 #
@@ -66,7 +77,7 @@ VOCABS = {
     'jena-fuseki-igsn': {
         'source': VocabSource.SPARQL,
         'title': 'jena-fuseki-igsn (SPARQL)',
-        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'sparql': 'http://52.65.31.119/fuseki/vocabs',
         'download': 'rdf_test',
         'fuseki_dataset' : 'yes',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode',
@@ -74,42 +85,42 @@ VOCABS = {
     'igsn-accessType': {
         'source': VocabSource.SPARQL,
         'title': 'IGSN Access Type (SPARQL)',
-        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'sparql': 'http://52.65.31.119/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
     },
     'eventprocess': {
         'source': VocabSource.SPARQL,
         'title': 'Event Process (SPARQL)',
-        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'sparql': 'http://52.65.31.119/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/eventprocess',
     },
     'CGI alteration_type': {
         'source': VocabSource.SPARQL,
         'title': 'CGI Alteration Type (SPARQL)',
-        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'sparql': 'http://52.65.31.119/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     },
     'IGSN methodType': {
         'source': VocabSource.SPARQL,
         'title': 'IGSN Method Type (SPARQL)',
-        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'sparql': 'http://52.65.31.119/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/methodType',
     },
     'CGI Simple Lithology': {
         'source': VocabSource.SPARQL,
         'title': 'CGI Simple Lithology (SPARQL)',
-        'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+        'sparql': 'http://52.65.31.119/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/lithology',
     },
     # 'methodType': {
     #     'source': VocabSource.SPARQL,
     #     'title': 'Method Type',
-    #     'sparql': 'http://ec2-54-252-230-128.ap-southeast-2.compute.amazonaws.com/fuseki/add_all',
+    #     'sparql': 'http://52.65.31.119/fuseki/vocabs',
     #     'download': 'rdf_test',
     #     'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     # },
