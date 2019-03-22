@@ -74,7 +74,7 @@ ORDER BY ?vocab''')
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
         PREFIX dct: <http://purl.org/dc/terms/>
         
-        SELECT DISTINCT *
+        SELECT DISTINCT ?c ?l
         WHERE {
             GRAPH ?graph {
                 {
@@ -94,12 +94,10 @@ ORDER BY ?vocab''')
         return [(x.get('c').get('value'), x.get('l').get('value')) for x in concepts]
 
     def list_concepts(self):
-        print("VOCAB ID")
-        print(self.vocab_id)
         sparql = self.get_sparqlwrapper()
 
         query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?c ?pl
 WHERE {{
     GRAPH ?graph {{
         {{
@@ -120,7 +118,30 @@ WHERE {{
         
         concepts = sparql.query().convert()['results']['bindings']
 
-        return [(x.get('c').get('value'), x.get('pl').get('value')) for x in concepts]
+        concept_items = []
+        for concept in concepts:
+            metadata = {}
+            metadata.update({'key': self.vocab_id})
+            try:
+                metadata.update({'uri': concept['c']['value']})
+            except:
+                metadata.update({'uri': None})
+            try:
+                metadata.update({'title': concept['pl']['value']})
+            except:
+                metadata.update({'title': None})
+            try:
+                metadata.update({'date_created': concept['date_created']['value'][:10]})
+            except:
+                metadata.update({'date_created': None})
+            try:
+                metadata.update({'date_modified': concept['date_modified']['value'][:10]})
+            except:
+                metadata.update({'date_modified': None})
+
+            concept_items.append(metadata)
+
+        return concept_items
 
     def get_vocabulary(self):
         sparql = self.get_sparqlwrapper()
@@ -131,7 +152,7 @@ WHERE {{
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
         PREFIX dct: <http://purl.org/dc/terms/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        SELECT DISTINCT *
+        SELECT DISTINCT ?s ?t ?d ?c ?cr ?m ?v
         WHERE {{
         GRAPH ?graph 
         {{
@@ -213,22 +234,23 @@ WHERE {{
         self.uri = metadata['results']['bindings'][0]['s']['value']
         print("SELF.URI: " + str(self.uri))
         return Vocabulary(
-            self.vocab_id,
-            metadata['results']['bindings'][0]['s']['value'],
-            metadata['results']['bindings'][0]['t']['value'],
-            metadata['results']['bindings'][0]['d']['value']
+            id=self.vocab_id,
+            uri=metadata['results']['bindings'][0]['s']['value'],
+            title=metadata['results']['bindings'][0]['t']['value'],
+            description=metadata['results']['bindings'][0]['d']['value']
                 if metadata['results']['bindings'][0].get('d') is not None else None,
-            metadata['results']['bindings'][0].get('c').get('value')
+            creator=metadata['results']['bindings'][0].get('c').get('value')
                 if metadata['results']['bindings'][0].get('c') is not None else None,
-            metadata['results']['bindings'][0].get('cr').get('value')
+            created=metadata['results']['bindings'][0].get('cr').get('value')
                 if metadata['results']['bindings'][0].get('cr') is not None else None,
-            metadata['results']['bindings'][0].get('m').get('value')
+            modified=metadata['results']['bindings'][0].get('m').get('value')
                 if metadata['results']['bindings'][0].get('m') is not None else None,
-            metadata['results']['bindings'][0].get('v').get('value')
+            versionInfo=metadata['results']['bindings'][0].get('v').get('value')
                 if metadata['results']['bindings'][0].get('v') is not None else None,
-            [(x.get('tc').get('value'), x.get('pl').get('value')) for x in top_concepts],
-            self.get_concept_hierarchy(),
-            config.VOCABS.get(self.vocab_id).get('download')
+            hasTopConcepts=[(x.get('tc').get('value'), x.get('pl').get('value')) for x in top_concepts],
+            conceptHierarchy=self.get_concept_hierarchy(),
+            accessURL=None,
+            downloadURL=config.VOCABS.get(self.vocab_id).get('download')
         )
 
     def get_collection(self, uri):
@@ -244,7 +266,7 @@ WHERE {{
         #=======================================================================
         q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX dct: <http://purl.org/dc/terms/>
-SELECT DISTINCT *
+SELECT DISTINCT ?l ?c
 
 WHERE {{
     GRAPH ?graph {{
@@ -270,7 +292,7 @@ WHERE {{
         #     }}'''.format(uri)
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?m ?pl
 
 WHERE {{
     GRAPH ?graph {{
@@ -306,7 +328,7 @@ ORDER BY ?m'''.format(uri=uri)
         #     }}'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?pl ?d
 
 WHERE {{
     GRAPH ?graph {{
@@ -331,7 +353,7 @@ WHERE {{
         #     }}'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?al
 
 WHERE {{
     GRAPH ?graph {{
@@ -357,7 +379,7 @@ ORDER BY ?al'''.format(uri=uri)
         #     }}'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?hl ?pl
 WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:hiddenLabel ?hl .
@@ -383,7 +405,7 @@ ORDER BY ?pl ?hl'''.format(uri=uri)
         #     }}'''.format(uri)
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?b ?pl
 
 WHERE {{
     GRAPH ?graph {{
@@ -411,7 +433,7 @@ ORDER BY ?b'''.format(uri=uri)
         #     }}'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?n ?pl
 
 WHERE {{
     GRAPH ?graph {{
@@ -438,7 +460,7 @@ ORDER BY ?n'''.format(uri=uri)
         #             }}'''.format(uri)
         #=======================================================================
         q = '''PREFIX dct: <http://purl.org/dc/terms/>
-SELECT DISTINCT *
+SELECT DISTINCT ?source
 
 WHERE {{
     GRAPH ?graph {{
@@ -463,7 +485,7 @@ ORDER BY ?source'''.format(uri=uri)
         #                     }}'''.format(uri)
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?definition
 
 WHERE {{
     GRAPH ?graph {{
@@ -488,7 +510,7 @@ ORDER BY ?definition'''.format(uri=uri)
         #                             }}'''.format(uri)
         #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?prefLabel
 WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:prefLabel ?prefLabel .
@@ -511,7 +533,7 @@ ORDER BY ?preflabel'''.format(uri=uri)
             altLabels=[x.get('al').get('value') for x in altLabels],
             hiddenLabels=[x.get('hl').get('value') for x in hiddenLabels],
             source=source,
-            contributor=metadata[0].get('cn').get('value') if metadata[0].get('cn') is not None else None,
+            contributors=metadata[0].get('cn').get('value') if metadata[0].get('cn') is not None else None,
             broaders=[{'uri': x.get('b').get('value'), 'prefLabel': x.get('pl').get('value')} for x in broaders] if broaders else [],
             narrowers=[{'uri': x.get('n').get('value'), 'prefLabel': x.get('pl').get('value')} for x in narrowers] if narrowers else [],
             exactMatches=None,
@@ -519,7 +541,9 @@ ORDER BY ?preflabel'''.format(uri=uri)
             broadMatches=[],
             narrowMatches=[],
             relatedMatches=[],
-            semantic_properties=[]
+            semantic_properties=[],
+            date_created=None,
+            date_modified=None
         )
 
     def get_concept_hierarchy(self):

@@ -41,11 +41,11 @@ VB_PASSWORD = ''
 SPARQL_CREDENTIALS = {
     'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs':
     {'username': 'vocabmanager',
-     'password': ''
+     'password': 'password'
       },
     'http://52.65.31.119/fuseki/vocabs':
     {'username': 'vocabmanager',
-     'password': ''
+     'password': 'password'
       },
     }
 #
@@ -77,7 +77,7 @@ VOCABS = {
     'jena-fuseki-igsn': {
         'source': VocabSource.SPARQL,
         'title': 'jena-fuseki-igsn (SPARQL)',
-        'sparql': 'http://52.65.31.119/fuseki/vocabs',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
         'download': 'rdf_test',
         'fuseki_dataset' : 'yes',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode',
@@ -85,42 +85,43 @@ VOCABS = {
     'igsn-accessType': {
         'source': VocabSource.SPARQL,
         'title': 'IGSN Access Type (SPARQL)',
-        'sparql': 'http://52.65.31.119/fuseki/vocabs',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
     },
     'eventprocess': {
         'source': VocabSource.SPARQL,
         'title': 'Event Process (SPARQL)',
-        'sparql': 'http://52.65.31.119/fuseki/vocabs',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/eventprocess',
     },
     'CGI alteration_type': {
         'source': VocabSource.SPARQL,
         'title': 'CGI Alteration Type (SPARQL)',
-        'sparql': 'http://52.65.31.119/fuseki/vocabs',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     },
     'IGSN methodType': {
         'source': VocabSource.SPARQL,
         'title': 'IGSN Method Type (SPARQL)',
-        'sparql': 'http://52.65.31.119/fuseki/vocabs',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/methodType',
     },
     'CGI Simple Lithology': {
         'source': VocabSource.SPARQL,
         'title': 'CGI Simple Lithology (SPARQL)',
-        'sparql': 'http://52.65.31.119/fuseki/vocabs',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
         'download': 'rdf_test',
         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/lithology',
     },
+    #===========================================================================
     # 'methodType': {
     #     'source': VocabSource.SPARQL,
     #     'title': 'Method Type',
-    #     'sparql': 'http://52.65.31.119/fuseki/vocabs',
+    #     'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
     #     'download': 'rdf_test',
     #     'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
     # },
@@ -143,10 +144,11 @@ VOCABS = {
     #     'source': VocabSource.FILE,
     #     'title': 'Contact Type - File'
     # },
-    'ga-stratigraphic-rank': {
-        'source': VocabSource.FILE,
-        'title': 'Stratigraphic Rank File'
-    }
+    # 'ga-stratigraphic-rank': {
+    #     'source': VocabSource.FILE,
+    #     'title': 'Stratigraphic Rank File'
+    # }
+    #===========================================================================
 }
 
 #
