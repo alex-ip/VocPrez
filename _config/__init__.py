@@ -41,11 +41,11 @@ VB_PASSWORD = ''
 SPARQL_CREDENTIALS = {
     'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs':
     {'username': 'vocabmanager',
-     'password': 'vocab1234%^&*'
+     'password': ''
       },
     'http://52.65.31.119/fuseki/vocabs':
     {'username': 'vocabmanager',
-     'password': 'vocab1234%^&*'
+     'password': ''
       },
     }
 #
