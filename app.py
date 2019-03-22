@@ -14,7 +14,10 @@ app.register_blueprint(routes.routes)
 
 @app.before_first_request
 def start_up_tasks():
-    #VOCBENCH.init()
+    try:
+        VOCBENCH.init()
+    except:
+        pass
     RVA.init()
     FILE.init()
     # extend this instances' list of vocabs by using the known sources
