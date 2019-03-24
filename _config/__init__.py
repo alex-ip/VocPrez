@@ -40,8 +40,8 @@ VB_PASSWORD = ''
 # Configure login credentials for different SPARQL endpoints here
 SPARQL_CREDENTIALS = {
     'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs':
-    {'username': 'vocabmanager',
-     'password': 'password'
+    {'username': 'vocabuser',
+     'password': 'vuser1234%^&*'
       },
     'http://52.65.31.119/fuseki/vocabs':
     {'username': 'vocabmanager',

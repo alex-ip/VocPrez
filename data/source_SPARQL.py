@@ -3,6 +3,9 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import _config as config
 from rdflib import Graph, RDF, URIRef
 from rdflib.namespace import SKOS
+from model.collection import Collection
+from model.vocabulary import Vocabulary
+from model.concept import Concept
 
 class SPARQL(Source):
     """Source for SPARQL endpoint
@@ -43,7 +46,7 @@ WHERE {
             {?vocab dct:title ?vocab_label .} 
             UNION {?vocab rdfs:label ?vocab_label .}
             }
-        FILTER(lang(?concept_preflabel) = "en" || lang(?concept_preflabel) = "")
+        FILTER(lang(?vocab_label) = "en" || lang(?vocab_label) = "")
     }
 }
 ORDER BY ?vocab''')
@@ -85,6 +88,7 @@ ORDER BY ?vocab''')
                     {?c dct:title ?l .} 
                     UNION {?c rdfs:label ?l .}
                     }
+                FILTER(lang(?l) = "en" || lang(?l) = "")
                 }
             }
         ORDER BY ?c ?l''')
@@ -110,6 +114,7 @@ WHERE {{
             }}
         ?c a skos:Concept .
         ?c skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "en" || lang(?pl) = "")
         }}
     }}'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print("List Concepts Query: " + str(query))
@@ -210,6 +215,7 @@ WHERE {{
                     FILTER (!bound(?broader_concept))
                     FILTER(?s = <{vocab_uri}>)
                     }}
+                FILTER(lang(?pl) = "en" || lang(?pl) = "")
                 }}
             }}
         ORDER BY ?s ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
@@ -230,7 +236,6 @@ WHERE {{
         # 
         # top_concepts = sparql.query().convert()['results']['bindings']
 
-        from model.vocabulary import Vocabulary
         self.uri = metadata['results']['bindings'][0]['s']['value']
         print("SELF.URI: " + str(self.uri))
         return Vocabulary(
@@ -270,11 +275,13 @@ SELECT DISTINCT ?l ?c
 
 WHERE {{
     GRAPH ?graph {{
-        {
+        {{
             {{<{uri}> dct:title ?l .}}
             UNION {{<{uri}> rdfs:label ?l .}}
             }}
         OPTIONAL {{?s rdfs:comment ?c }}
+        FILTER(lang(?l) = "en" || lang(?l) = "")
+        FILTER(lang(?c) = "en" || lang(?c) = "")
         }}
     }}'''.format(uri=uri)
        
@@ -298,6 +305,7 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:member ?m .
         ?m skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "en" || lang(?pl) = "")
         }}
     }}
 ORDER BY ?m'''.format(uri=uri)
@@ -305,7 +313,6 @@ ORDER BY ?m'''.format(uri=uri)
         
         members = sparql.query().convert()['results']['bindings']
 
-        from model.collection import Collection
         return Collection(
             self.vocab_id,
             uri,
@@ -334,6 +341,8 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:prefLabel ?pl .
         OPTIONAL {{?s skos:definition ?d .}}
+        FILTER(lang(?pl) = "en" || lang(?pl) = "")
+        FILTER(lang(?d) = "en" || lang(?d) = "")
         }}
     }}'''.format(uri=uri)
         sparql.setQuery(q)
@@ -384,6 +393,7 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:hiddenLabel ?hl .
         ?hl skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "en" || lang(?pl) = "")
         }}
     }}
 ORDER BY ?pl ?hl'''.format(uri=uri)
@@ -411,6 +421,7 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:broader ?b .
         ?b skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "en" || lang(?pl) = "")
         }}
     }}
 ORDER BY ?b'''.format(uri=uri)
@@ -439,6 +450,7 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:narrower ?n .
         ?n skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "en" || lang(?pl) = "")
         }}
     }}
 ORDER BY ?n'''.format(uri=uri)
@@ -490,6 +502,7 @@ SELECT DISTINCT ?definition
 WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:definition ?definition .
+        FILTER(lang(?definition) = "en" || lang(?definition) = "")
         }}
     }}
 ORDER BY ?definition'''.format(uri=uri)
@@ -514,6 +527,7 @@ SELECT DISTINCT ?prefLabel
 WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:prefLabel ?prefLabel .
+        FILTER(lang(?prefLabel) = "en" || lang(?prefLabel) = "")
         }}
     }}
 ORDER BY ?preflabel'''.format(uri=uri)
@@ -524,7 +538,6 @@ ORDER BY ?preflabel'''.format(uri=uri)
         except:
             pass
 
-        from model.concept import Concept
         return Concept(
             vocab_id=self.vocab_id,
             uri=uri,
@@ -599,7 +612,6 @@ WHERE {{
             UNION {{?concept skos:inScheme <{vocab_uri}> .}}
             }}
         ?concept skos:prefLabel ?concept_preflabel .
-        OPTIONAL {{?concept skos:definition ?concept_description .}}
         OPTIONAL {{?concept skos:broader ?broader_concept .}}
         FILTER(lang(?concept_preflabel) = "en" || lang(?concept_preflabel) = "")
     }}
