@@ -436,7 +436,7 @@ ORDER BY ?b'''.format(uri=uri)
         #     }}'''.format(uri)
         #=======================================================================
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?n ?pl
 
 WHERE {{
     GRAPH ?graph {{
