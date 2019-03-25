@@ -50,7 +50,7 @@ WHERE {
     }
 }
 ORDER BY ?vocab''')
-        
+
         results = sparql.query().convert()['results']['bindings']
 
         #return [(x.get('c').get('value'), x.get('l').get('value')) for result in results]
@@ -92,7 +92,7 @@ ORDER BY ?vocab''')
                 }
             }
         ORDER BY ?c ?l''')
-        
+
         concepts = sparql.query().convert()['results']['bindings']
 
         return [(x.get('c').get('value'), x.get('l').get('value')) for x in concepts]
@@ -120,7 +120,7 @@ WHERE {{
         print("List Concepts Query: " + str(query))
         sparql.setQuery(query)
 
-        
+
         concepts = sparql.query().convert()['results']['bindings']
 
         concept_items = []
@@ -180,7 +180,7 @@ WHERE {{
         ORDER BY ?s'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
-        
+
         metadata = sparql.query().convert()
 
         # get the vocab's top concepts
@@ -221,7 +221,7 @@ WHERE {{
         ORDER BY ?s ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
-        
+
         top_concepts = sparql.query().convert()['results']['bindings']
 
         # TODO: check if there are any common ways to ascertain if a vocab/ConceptScheme has any Collections
@@ -233,7 +233,7 @@ WHERE {{
         #       ?s skos:hasTopConcept ?tc .
         #       ?tc skos:prefLabel ?pl .
         #     }''')
-        # 
+        #
         # top_concepts = sparql.query().convert()['results']['bindings']
 
         self.uri = metadata['results']['bindings'][0]['s']['value']
@@ -280,24 +280,14 @@ WHERE {{
             UNION {{<{uri}> rdfs:label ?l .}}
             }}
         OPTIONAL {{?s rdfs:comment ?c }}
-        FILTER(lang(?l) = "en" || lang(?l) = "")
-        FILTER(lang(?c) = "en" || lang(?c) = "")
         }}
     }}'''.format(uri=uri)
        
         sparql.setQuery(q)
-        
+
         metadata = sparql.query().convert()['results']['bindings']
 
         # get the collection's members
-        #=======================================================================
-        # q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        #     SELECT *
-        #     WHERE {{
-        #       <{}> skos:member ?m .
-        #       ?n skos:prefLabel ?pl .
-        #     }}'''.format(uri)
-        #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?m ?pl
 
@@ -310,7 +300,7 @@ WHERE {{
     }}
 ORDER BY ?m'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         members = sparql.query().convert()['results']['bindings']
 
         return Collection(
@@ -346,7 +336,7 @@ WHERE {{
         }}
     }}'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         metadata = None
         try:
             metadata = sparql.query().convert()['results']['bindings']
@@ -371,7 +361,7 @@ WHERE {{
     }}
 ORDER BY ?al'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         altLabels = None
         try:
             altLabels = sparql.query().convert()['results']['bindings']
@@ -398,7 +388,7 @@ WHERE {{
     }}
 ORDER BY ?pl ?hl'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         hiddenLabels = None
         try:
             hiddenLabels = sparql.query().convert()['results']['bindings']
@@ -406,14 +396,7 @@ ORDER BY ?pl ?hl'''.format(uri=uri)
             pass
 
         # get the concept's broaders
-        #=======================================================================
-        # q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        #     SELECT *
-        #     WHERE {{
-        #       <{}> skos:broader ?b .
-        #       ?b skos:prefLabel ?pl .
-        #     }}'''.format(uri)
-        #=======================================================================
+
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?b ?pl
 
@@ -427,7 +410,7 @@ WHERE {{
 ORDER BY ?b'''.format(uri=uri)
         sparql.setQuery(q)
         print(q)
-        
+
         broaders = None
         try:
             broaders = sparql.query().convert()['results']['bindings']
@@ -456,7 +439,7 @@ WHERE {{
 ORDER BY ?n'''.format(uri=uri)
 
         sparql.setQuery(q)
-        
+
         narrowers = None
         try:
             narrowers = sparql.query().convert()['results']['bindings']
@@ -481,7 +464,7 @@ WHERE {{
     }}
 ORDER BY ?source'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         source = None
         try:
             source = sparql.query().convert()['results']['bindings'][0]['source']['value']
@@ -507,7 +490,7 @@ WHERE {{
     }}
 ORDER BY ?definition'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         definition = None
         try:
             definition = sparql.query().convert()['results']['bindings'][0]['definition']['value']
@@ -532,7 +515,7 @@ WHERE {{
     }}
 ORDER BY ?preflabel'''.format(uri=uri)
         sparql.setQuery(q)
-        
+
         try:
             prefLabel = sparql.query().convert()['results']['bindings'][0]['prefLabel']['value']
         except:
@@ -619,7 +602,7 @@ WHERE {{
 ORDER BY ?concept'''.format(vocab_uri=self.uri)
         print(query)
         sparql.setQuery(query)
-        
+
         bindings_list = sparql.query().convert()['results']['bindings']
         
         hierarchy = build_hierarchy(bindings_list)
@@ -669,7 +652,7 @@ WHERE {{
     }}'''.format(uri=uri)
         sparql.setQuery(q)
 
-        
+
         for c in sparql.query().convert()['results']['bindings']:
             if c.get('c')['value'] in self.VOC_TYPES:
                 return c.get('c')['value']
@@ -682,10 +665,10 @@ WHERE {{
         '''
         sparql_wrapper = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         sparql_wrapper.setReturnFormat(JSON)
-        
+
         if (hasattr(config, 'SPARQL_CREDENTIALS')
             and config.SPARQL_CREDENTIALS.get(config.VOCABS.get(self.vocab_id).get('sparql'))):
             sparql_credentials = config.SPARQL_CREDENTIALS[config.VOCABS.get(self.vocab_id).get('sparql')]
             sparql_wrapper.setCredentials(sparql_credentials['username'], sparql_credentials['password'])
-        
+
         return sparql_wrapper
