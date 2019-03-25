@@ -227,22 +227,13 @@ ORDER BY ?vocab''')
 
     def get_collection(self, uri):
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
-        print("GET COLLECTION")
-        #=======================================================================
-        # q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        #     SELECT *
-        #     WHERE {{
-        #       <{}> rdfs:label ?l .
-        #       OPTIONAL {{?s rdfs:comment ?c }}
-        #     }}'''.format(uri)
-        #=======================================================================
+
         q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dct: <http://purl.org/dc/terms/>
-SELECT DISTINCT *
+        PREFIX dct: <http://purl.org/dc/terms/>
+        SELECT DISTINCT *
 
 WHERE {{
     GRAPH ?graph {{
-        {
             {{<{uri}> dct:title ?l .}}
             UNION {{<{uri}> rdfs:label ?l .}}
             }}
@@ -255,14 +246,6 @@ WHERE {{
         metadata = sparql.query().convert()['results']['bindings']
 
         # get the collection's members
-        #=======================================================================
-        # q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        #     SELECT *
-        #     WHERE {{
-        #       <{}> skos:member ?m .
-        #       ?n skos:prefLabel ?pl .
-        #     }}'''.format(uri)
-        #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
 
@@ -287,8 +270,6 @@ ORDER BY ?m'''.format(uri=uri)
         )
 
     def get_concept(self, uri):
-        print("Get Concept")
-        print("VOCAB ID" + str(self.vocab_id))
 
         sparql = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         #=======================================================================
@@ -368,14 +349,7 @@ ORDER BY ?pl ?hl'''.format(uri=uri)
             pass
 
         # get the concept's broaders
-        #=======================================================================
-        # q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        #     SELECT *
-        #     WHERE {{
-        #       <{}> skos:broader ?b .
-        #       ?b skos:prefLabel ?pl .
-        #     }}'''.format(uri)
-        #=======================================================================
+
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT *
 
