@@ -193,31 +193,34 @@ WHERE {{
         #       ?tc skos:prefLabel ?pl .
         #     }''')
         #=======================================================================
-        query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        PREFIX dct: <http://purl.org/dc/terms/>
-        PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        SELECT DISTINCT ?s ?tc ?pl
-        WHERE {{
-            GRAPH ?graph {{
+        query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT DISTINCT ?tc ?pl
+WHERE {{
+    GRAPH ?graph {{
+        {{
+            <{vocab_uri}> skos:hasTopConcept ?tc .
+            ?tc skos:prefLabel ?pl .
+            }}
+        UNION {{
+            {{
+                {{<{vocab_uri}> skos:member ?tc .}}
+                UNION {{?tc skos:inScheme <{vocab_uri}> .}}
+                }}
+            ?tc skos:prefLabel ?pl .
+            OPTIONAL {{?tc skos:broader ?broader_concept .
                 {{
-                    ?s skos:hasTopConcept ?tc .
-                    ?tc skos:prefLabel ?pl .
-                    FILTER(?s = <{vocab_uri}>)
-                    }}
-                UNION {{
-                    {{
-                        {{?s skos:member ?tc .}}
-                        UNION {{?tc skos:inScheme ?s .}}
-                        }}
-                    ?tc skos:prefLabel ?pl .
-                    OPTIONAL {{?tc skos:broader ?broader_concept .}}
-                    FILTER (!bound(?broader_concept))
-                    FILTER(?s = <{vocab_uri}>)
+                {{<{vocab_uri}> ?broader_concept ?tc .}}
+                UNION {{?broader_concept skos:inScheme <{vocab_uri}> .}}
                     }}
                 }}
+            FILTER (!bound(?broader_concept))
+            FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
             }}
-        ORDER BY ?s ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        }}
+    }}
+ORDER BY ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
         
