@@ -211,7 +211,7 @@ WHERE {{
             ?tc skos:prefLabel ?pl .
             OPTIONAL {{?tc skos:broader ?broader_concept .
                 {{
-                {{<{vocab_uri}> ?broader_concept ?tc .}}
+                {{<{vocab_uri}> skos:member ?broader_concept .}}
                 UNION {{?broader_concept skos:inScheme <{vocab_uri}> .}}
                     }}
                 }}
