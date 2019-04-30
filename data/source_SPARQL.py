@@ -3,9 +3,6 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import _config as config
 from rdflib import Graph, RDF, URIRef
 from rdflib.namespace import SKOS
-from model.collection import Collection
-from model.vocabulary import Vocabulary
-from model.concept import Concept
 
 class SPARQL(Source):
     """Source for SPARQL endpoint
@@ -42,20 +39,24 @@ WHERE {
             {?vocab a skos:Collection .}
             UNION {?vocab a skos:ConceptScheme .}
             }
-        OPTIONAL {
-            {?vocab dct:title ?vocab_label .} 
-            UNION {?vocab rdfs:label ?vocab_label .}
+        OPTIONAL {?vocab dct:title ?vocab_title .
+            FILTER(lang(?vocab_title) = "en" || lang(?vocab_title) = "")
+            } 
+        OPTIONAL {?vocab rdfs:label ?vocab_label .
+            FILTER(lang(?vocab_label) = "en" || lang(?vocab_label) = "")
             }
-        FILTER(lang(?vocab_label) = "en" || lang(?vocab_label) = "")
     }
 }
 ORDER BY ?vocab''')
-
+        
         results = sparql.query().convert()['results']['bindings']
 
         #return [(x.get('c').get('value'), x.get('l').get('value')) for result in results]
         return {result['vocab']['value']: {'source': config.VocabSource.SPARQL,
-                                           'title': result['vocab_label']['value']}
+                                           'title': (result['vocab_title']['value'] 
+                                                     if result.get('vocab_title')
+                                                     else result['vocab_label']['value'] if result.get('vocab_label')
+                                                     else '')}
                 for result in results
                 }
 
@@ -88,11 +89,10 @@ ORDER BY ?vocab''')
                     {?c dct:title ?l .} 
                     UNION {?c rdfs:label ?l .}
                     }
-                FILTER(lang(?l) = "en" || lang(?l) = "")
                 }
             }
         ORDER BY ?c ?l''')
-
+        
         concepts = sparql.query().convert()['results']['bindings']
 
         return [(x.get('c').get('value'), x.get('l').get('value')) for x in concepts]
@@ -114,13 +114,13 @@ WHERE {{
             }}
         ?c a skos:Concept .
         ?c skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "en" || lang(?pl) = "")
+        FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
         }}
     }}'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print("List Concepts Query: " + str(query))
         sparql.setQuery(query)
 
-
+        
         concepts = sparql.query().convert()['results']['bindings']
 
         concept_items = []
@@ -180,7 +180,7 @@ WHERE {{
         ORDER BY ?s'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
-
+        
         metadata = sparql.query().convert()
 
         # get the vocab's top concepts
@@ -193,35 +193,38 @@ WHERE {{
         #       ?tc skos:prefLabel ?pl .
         #     }''')
         #=======================================================================
-        query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        PREFIX dct: <http://purl.org/dc/terms/>
-        PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        SELECT DISTINCT ?s ?tc ?pl
-        WHERE {{
-            GRAPH ?graph {{
-                {{
-                    ?s skos:hasTopConcept ?tc .
-                    ?tc skos:prefLabel ?pl .
-                    FILTER(?s = <{vocab_uri}>)
-                    }}
-                UNION {{
-                    {{
-                        {{?s skos:member ?tc .}}
-                        UNION {{?tc skos:inScheme ?s .}}
-                        }}
-                    ?tc skos:prefLabel ?pl .
-                    OPTIONAL {{?tc skos:broader ?broader_concept .}}
-                    FILTER (!bound(?broader_concept))
-                    FILTER(?s = <{vocab_uri}>)
-                    }}
-                FILTER(lang(?pl) = "en" || lang(?pl) = "")
-                }}
+        query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT DISTINCT ?tc ?pl
+WHERE {{
+    GRAPH ?graph {{
+        {{
+            <{vocab_uri}> skos:hasTopConcept ?tc .
+            ?tc skos:prefLabel ?pl .
+            FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
             }}
-        ORDER BY ?s ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        UNION {{
+            {{
+                {{<{vocab_uri}> skos:member ?tc .}}
+                UNION {{?tc skos:inScheme <{vocab_uri}> .}}
+                }}
+            ?tc skos:prefLabel ?pl .
+            OPTIONAL {{?tc skos:broader ?broader_concept .
+                {{
+                {{<{vocab_uri}> skos:member ?broader_concept .}}
+                UNION {{?broader_concept skos:inScheme <{vocab_uri}> .}}
+                    }}
+                }}
+            FILTER (!bound(?broader_concept))
+            FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
+            }}
+        }}
+    }}
+ORDER BY ?tc'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         print(query)
         sparql.setQuery(query)
-
+        
         top_concepts = sparql.query().convert()['results']['bindings']
 
         # TODO: check if there are any common ways to ascertain if a vocab/ConceptScheme has any Collections
@@ -233,9 +236,10 @@ WHERE {{
         #       ?s skos:hasTopConcept ?tc .
         #       ?tc skos:prefLabel ?pl .
         #     }''')
-        #
+        # 
         # top_concepts = sparql.query().convert()['results']['bindings']
 
+        from model.vocabulary import Vocabulary
         self.uri = metadata['results']['bindings'][0]['s']['value']
         print("SELF.URI: " + str(self.uri))
         return Vocabulary(
@@ -275,7 +279,7 @@ SELECT DISTINCT ?l ?c
 
 WHERE {{
     GRAPH ?graph {{
-        {{
+        {
             {{<{uri}> dct:title ?l .}}
             UNION {{<{uri}> rdfs:label ?l .}}
             }}
@@ -284,10 +288,18 @@ WHERE {{
     }}'''.format(uri=uri)
        
         sparql.setQuery(q)
-
+        
         metadata = sparql.query().convert()['results']['bindings']
 
         # get the collection's members
+        #=======================================================================
+        # q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        #     SELECT *
+        #     WHERE {{
+        #       <{}> skos:member ?m .
+        #       ?n skos:prefLabel ?pl .
+        #     }}'''.format(uri)
+        #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?m ?pl
 
@@ -295,14 +307,15 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:member ?m .
         ?m skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "en" || lang(?pl) = "")
+        FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
         }}
     }}
 ORDER BY ?m'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         members = sparql.query().convert()['results']['bindings']
 
+        from model.collection import Collection
         return Collection(
             self.vocab_id,
             uri,
@@ -331,12 +344,11 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:prefLabel ?pl .
         OPTIONAL {{?s skos:definition ?d .}}
-        FILTER(lang(?pl) = "en" || lang(?pl) = "")
-        FILTER(lang(?d) = "en" || lang(?d) = "")
+        FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
         }}
     }}'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         metadata = None
         try:
             metadata = sparql.query().convert()['results']['bindings']
@@ -361,7 +373,7 @@ WHERE {{
     }}
 ORDER BY ?al'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         altLabels = None
         try:
             altLabels = sparql.query().convert()['results']['bindings']
@@ -383,12 +395,12 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:hiddenLabel ?hl .
         ?hl skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "en" || lang(?pl) = "")
+        FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
         }}
     }}
 ORDER BY ?pl ?hl'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         hiddenLabels = None
         try:
             hiddenLabels = sparql.query().convert()['results']['bindings']
@@ -396,7 +408,14 @@ ORDER BY ?pl ?hl'''.format(uri=uri)
             pass
 
         # get the concept's broaders
-
+        #=======================================================================
+        # q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        #     SELECT *
+        #     WHERE {{
+        #       <{}> skos:broader ?b .
+        #       ?b skos:prefLabel ?pl .
+        #     }}'''.format(uri)
+        #=======================================================================
         q = ''' PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?b ?pl
 
@@ -404,13 +423,13 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:broader ?b .
         ?b skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "en" || lang(?pl) = "")
+        FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
         }}
     }}
 ORDER BY ?b'''.format(uri=uri)
         sparql.setQuery(q)
         print(q)
-
+        
         broaders = None
         try:
             broaders = sparql.query().convert()['results']['bindings']
@@ -433,13 +452,13 @@ WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:narrower ?n .
         ?n skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "en" || lang(?pl) = "")
+        FILTER((LANG(?pl) = "en") || (LANG(?pl) = ""))
         }}
     }}
 ORDER BY ?n'''.format(uri=uri)
 
         sparql.setQuery(q)
-
+        
         narrowers = None
         try:
             narrowers = sparql.query().convert()['results']['bindings']
@@ -464,7 +483,7 @@ WHERE {{
     }}
 ORDER BY ?source'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         source = None
         try:
             source = sparql.query().convert()['results']['bindings'][0]['source']['value']
@@ -485,12 +504,11 @@ SELECT DISTINCT ?definition
 WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:definition ?definition .
-        FILTER(lang(?definition) = "en" || lang(?definition) = "")
         }}
     }}
 ORDER BY ?definition'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         definition = None
         try:
             definition = sparql.query().convert()['results']['bindings'][0]['definition']['value']
@@ -510,17 +528,18 @@ SELECT DISTINCT ?prefLabel
 WHERE {{
     GRAPH ?graph {{
         <{uri}> skos:prefLabel ?prefLabel .
-        FILTER(lang(?prefLabel) = "en" || lang(?prefLabel) = "")
+        FILTER((LANG(?prefLabel) = "en") || (LANG(?prefLabel) = ""))
         }}
     }}
 ORDER BY ?preflabel'''.format(uri=uri)
         sparql.setQuery(q)
-
+        
         try:
             prefLabel = sparql.query().convert()['results']['bindings'][0]['prefLabel']['value']
         except:
             pass
 
+        from model.concept import Concept
         return Concept(
             vocab_id=self.vocab_id,
             uri=uri,
@@ -595,6 +614,7 @@ WHERE {{
             UNION {{?concept skos:inScheme <{vocab_uri}> .}}
             }}
         ?concept skos:prefLabel ?concept_preflabel .
+        OPTIONAL {{?concept skos:definition ?concept_description .}}
         OPTIONAL {{?concept skos:broader ?broader_concept .}}
         FILTER(lang(?concept_preflabel) = "en" || lang(?concept_preflabel) = "")
     }}
@@ -602,7 +622,7 @@ WHERE {{
 ORDER BY ?concept'''.format(vocab_uri=self.uri)
         print(query)
         sparql.setQuery(query)
-
+        
         bindings_list = sparql.query().convert()['results']['bindings']
         
         hierarchy = build_hierarchy(bindings_list)
@@ -644,7 +664,7 @@ ORDER BY ?concept'''.format(vocab_uri=self.uri)
         #     }}
         # '''.format(uri)
         #=======================================================================
-        q = '''SELECT ?c
+        q = '''SELECT DISTINCT ?c
 WHERE {{
     GRAPH ?graph {{
         <{uri}> a ?c .
@@ -652,7 +672,7 @@ WHERE {{
     }}'''.format(uri=uri)
         sparql.setQuery(q)
 
-
+        
         for c in sparql.query().convert()['results']['bindings']:
             if c.get('c')['value'] in self.VOC_TYPES:
                 return c.get('c')['value']
@@ -665,10 +685,10 @@ WHERE {{
         '''
         sparql_wrapper = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         sparql_wrapper.setReturnFormat(JSON)
-
+        
         if (hasattr(config, 'SPARQL_CREDENTIALS')
             and config.SPARQL_CREDENTIALS.get(config.VOCABS.get(self.vocab_id).get('sparql'))):
             sparql_credentials = config.SPARQL_CREDENTIALS[config.VOCABS.get(self.vocab_id).get('sparql')]
             sparql_wrapper.setCredentials(sparql_credentials['username'], sparql_credentials['password'])
-
+        
         return sparql_wrapper
