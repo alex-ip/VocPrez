@@ -33,9 +33,9 @@ SELECT distinct ?vocab ?vocab_title ?vocab_label
 WHERE {
     GRAPH ?graph {
         {
-#            {?vocab a skos:Collection .}
-#            UNION 
-             {?vocab a skos:ConceptScheme .}
+            {?vocab a skos:Collection .}
+            UNION 
+            {?vocab a skos:ConceptScheme .}
             }
         OPTIONAL {?vocab dct:title ?vocab_title .} 
         OPTIONAL {?vocab rdfs:label ?vocab_label .}
@@ -54,8 +54,28 @@ ORDER BY ?vocab'''
         
     bindings_list = sparql_wrapper.query().convert()['results']['bindings']
     
-    return {re.search('[^/]+$', binding['vocab']['value']).group(0): 
-            {
+    vocabs_dict = {}
+    for binding in bindings_list:
+        if not (binding.get('vocab_title') or binding.get('vocab_label')):
+            continue
+        
+        try:
+            tag = re.search('[^/]+$', binding['vocab']['value']).group(0)
+        except AttributeError:
+            tag = re.search('([^/]+)/$', binding['vocab']['value']).group(1) # trailing "/"
+            
+        try:
+            version = re.search('/cgi/([^/]+)/' + tag, binding['vocab']['value']).group(1)
+            tag += '_' + version
+        except:
+            version = None
+            
+        # Keep shortest URI
+        if vocabs_dict.get(tag):
+            if len(binding['vocab']['value']) > len(vocabs_dict[tag]['vocab_uri']):
+                continue
+    
+        vocabs_dict[tag] = {
             'source': VocabSource.SPARQL,
             'title': (binding['vocab_title']['value'] if binding.get('vocab_title') else None 
                       or binding['vocab_label']['value']),
@@ -64,9 +84,11 @@ ORDER BY ?vocab'''
             'fuseki_dataset' : 'yes',
             'vocab_uri': binding['vocab']['value'],
             }
-        for binding in bindings_list
-        if binding.get('vocab_title') or binding.get('vocab_label')
-        }
+        
+        if version:
+            vocabs_dict[tag]['title'] += ' (' + version + ')'
+        
+    return vocabs_dict
 
 #
 # -- VocPrez Settings --------------------------------------------------------------------------------------------------
