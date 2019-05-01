@@ -40,13 +40,17 @@
             {% for nav in navs %}
                 {{ nav|safe }}
             {% endfor %}
-            <a href="{{ url_for('routes.index') }}">System Home</a> /
+
+            <a href="{{ url_for('routes.index') }}">Home</a> /
+            <a href="{{ url_for('routes.geosciml') }}">GeoSciML</a> /
             <a href="{{ url_for('routes.vocabularies') }}">Vocabularies</a> /
-            <a href="{{ url_for('routes.about') }}">About VocPrez</a> /
-                        <a href="http://www.cgi-iugs.org/">About CGI </a> /
-                        <a href="http://www.geosciml.org/">GeoSciML</a> /
-                        <a href="http://www.earthresourceml.org/">EarthResourceML</a> /
-                        <a href="http://resource.geosciml.org/">CGI vocabularies</a>
+            <a href="">Concepts</a> /
+            <a href="">Developer Tools</a>
+            <!--<a href="{{ url_for('routes.about') }}">About VocPrez</a> /
+                       <!--  <a href="http://www.cgi-iugs.org/">About CGI </a> /-->
+
+                      <!--   <a href="http://www.earthresourceml.org/">EarthResourceML</a> /-->
+                      <!--  <a href="http://resource.geosciml.org/">CGI vocabularies</a> -->
         </div>
     </div>
     <div id="container-content" style="text-align:center;">
