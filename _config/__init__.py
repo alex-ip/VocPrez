@@ -3,6 +3,9 @@ from data.source_FILE import FILE
 from data.source_RVA import RVA
 # RVA doesnt need to be imported as it's list_vocabularies method isn't used- vocabs from that are statically listed
 from data.source_VOCBENCH import VOCBENCH
+from SPARQLWrapper import SPARQLWrapper, JSON
+import re
+from owlrl import NONE
 
 APP_DIR = path.dirname(path.dirname(path.realpath(__file__)))
 TEMPLATES_DIR = path.join(APP_DIR, 'view', 'templates')
@@ -10,6 +13,82 @@ STATIC_DIR = path.join(APP_DIR, 'view', 'static')
 LOGFILE = APP_DIR + '/flask.log'
 DEBUG = True
 
+def get_cgi_vocabs(sparql_endpoint, sparql_credentials=None):
+    '''
+    Function to return nested dict of form
+    'CGI Simple Lithology': {
+        'source': VocabSource.SPARQL,
+        'title': 'CGI Simple Lithology (SPARQL)',
+        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+        'download': 'rdf_test',
+        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/lithology',
+    },    
+    '''
+    
+    sparql = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+
+SELECT distinct ?vocab ?vocab_title ?vocab_label
+WHERE {
+    GRAPH ?graph {
+        {
+            {?vocab a skos:Collection .}
+            UNION 
+            {?vocab a skos:ConceptScheme .}
+            }
+        OPTIONAL {?vocab dct:title ?vocab_title .} 
+        OPTIONAL {?vocab rdfs:label ?vocab_label .}
+        FILTER(REGEX(STR(?vocab), "^http://resource.geosciml.org/"))
+    }
+}
+ORDER BY ?vocab'''
+    
+    sparql_wrapper = SPARQLWrapper(sparql_endpoint)
+    sparql_wrapper.setReturnFormat(JSON)
+    
+    if sparql_credentials:
+        sparql_wrapper.setCredentials(sparql_credentials['username'], sparql_credentials['password'])
+        
+    sparql_wrapper.setQuery(sparql)
+        
+    bindings_list = sparql_wrapper.query().convert()['results']['bindings']
+    
+    vocabs_dict = {}
+    for binding in bindings_list:
+        if not (binding.get('vocab_title') or binding.get('vocab_label')):
+            continue
+        
+        try:
+            tag = re.search('[^/]+$', binding['vocab']['value']).group(0)
+        except AttributeError:
+            tag = re.search('([^/]+)/$', binding['vocab']['value']).group(1) # trailing "/"
+            
+        try:
+            version = re.search('/cgi/([^/]+)/' + tag, binding['vocab']['value']).group(1)
+            tag += '_' + version
+        except:
+            version = None
+            
+        # Keep shortest URI
+        if vocabs_dict.get(tag):
+            if len(binding['vocab']['value']) > len(vocabs_dict[tag]['vocab_uri']):
+                continue
+    
+        vocabs_dict[tag] = {
+            'source': VocabSource.SPARQL,
+            'title': (binding['vocab_title']['value'] if binding.get('vocab_title') else None 
+                      or binding['vocab_label']['value']),
+            'sparql': sparql_endpoint,
+            'download': 'rdf_test',
+            'fuseki_dataset' : 'yes',
+            'vocab_uri': binding['vocab']['value'],
+            }
+        
+        if version:
+            vocabs_dict[tag]['title'] += ' (' + version + ')'
+        
+    return vocabs_dict
 
 #
 # -- VocPrez Settings --------------------------------------------------------------------------------------------------
@@ -45,7 +124,7 @@ SPARQL_CREDENTIALS = {
       },
     'http://52.65.31.119/fuseki/vocabs':
     {'username': 'vocabmanager',
-     'password': 'password'
+     'password': 'vocab1234%^&*'
       },
     }
 #
@@ -55,68 +134,71 @@ SPARQL_CREDENTIALS = {
 # VOCBENCH auto list vocabularies by implementing the list_vocabularies method and thus their vocabularies don't need to
 # be listed here. FILE vocabularies too don't need to be listed here as they are automatically picked up by the system
 # if the files are added to the data/ folder, as described in the DATA_SOURCES.md documentation file.
-VOCABS = {
-    'rva-50': {
-        'source': VocabSource.RVA,
-        'title': 'Geologic Unit Type',
-        'sparql': 'http://vocabs.ands.org.au/repository/api/sparql/ga_geologic-unit-type_v0-1',
-        'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/196/ga_geologic-unit-type_v0-1.ttl'
-    },
-    'rva-52': {
-        'source': VocabSource.RVA,
-        'title': 'Contact Type',
-        'sparql': 'http://vocabs.ands.org.au/repository/api/sparql/ga_contact-type_v0-1',
-        'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/202/ga_contact-type_v0-1.ttl'
-    },
-    'rva-57': {
-        'source': VocabSource.RVA,
-        'title': 'Stratigraphic Rank',
-        'sparql': 'http://vocabs.ands.org.au/repository/api/sparql/ga_stratigraphic-rank_v0-1',
-        'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/217/ga-stratigraphic-rank.ttl'
-    },
-    'jena-fuseki-igsn': {
-        'source': VocabSource.SPARQL,
-        'title': 'jena-fuseki-igsn (SPARQL)',
-        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
-        'download': 'rdf_test',
-        'fuseki_dataset' : 'yes',
-        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode',
-    },
-    'igsn-accessType': {
-        'source': VocabSource.SPARQL,
-        'title': 'IGSN Access Type (SPARQL)',
-        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
-        'download': 'rdf_test',
-        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
-    },
-    'eventprocess': {
-        'source': VocabSource.SPARQL,
-        'title': 'Event Process (SPARQL)',
-        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
-        'download': 'rdf_test',
-        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/eventprocess',
-    },
-    'CGI alteration_type': {
-        'source': VocabSource.SPARQL,
-        'title': 'CGI Alteration Type (SPARQL)',
-        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
-        'download': 'rdf_test',
-        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
-    },
-    'IGSN methodType': {
-        'source': VocabSource.SPARQL,
-        'title': 'IGSN Method Type (SPARQL)',
-        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
-        'download': 'rdf_test',
-        'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/methodType',
-    },
-    'CGI Simple Lithology': {
-        'source': VocabSource.SPARQL,
-        'title': 'CGI Simple Lithology (SPARQL)',
-        'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
-        'download': 'rdf_test',
-        'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/lithology',
-    },
+#===============================================================================
+# VOCABS = {
+#     'rva-50': {
+#         'source': VocabSource.RVA,
+#         'title': 'Geologic Unit Type',
+#         'sparql': 'http://vocabs.ands.org.au/repository/api/sparql/ga_geologic-unit-type_v0-1',
+#         'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/196/ga_geologic-unit-type_v0-1.ttl'
+#     },
+#     'rva-52': {
+#         'source': VocabSource.RVA,
+#         'title': 'Contact Type',
+#         'sparql': 'http://vocabs.ands.org.au/repository/api/sparql/ga_contact-type_v0-1',
+#         'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/202/ga_contact-type_v0-1.ttl'
+#     },
+#     'rva-57': {
+#         'source': VocabSource.RVA,
+#         'title': 'Stratigraphic Rank',
+#         'sparql': 'http://vocabs.ands.org.au/repository/api/sparql/ga_stratigraphic-rank_v0-1',
+#         'download': 'https://vocabs.ands.org.au/registry/api/resource/downloads/217/ga-stratigraphic-rank.ttl'
+#     },
+#     'jena-fuseki-igsn': {
+#         'source': VocabSource.SPARQL,
+#         'title': 'jena-fuseki-igsn (SPARQL)',
+#         'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+#         'download': 'rdf_test',
+#         'fuseki_dataset' : 'yes',
+#         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode',
+#     },
+#     'igsn-accessType': {
+#         'source': VocabSource.SPARQL,
+#         'title': 'IGSN Access Type (SPARQL)',
+#         'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+#         'download': 'rdf_test',
+#         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/accessType',
+#     },
+#     'eventprocess': {
+#         'source': VocabSource.SPARQL,
+#         'title': 'Event Process (SPARQL)',
+#         'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+#         'download': 'rdf_test',
+#         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/eventprocess',
+#     },
+#     'CGI alteration_type': {
+#         'source': VocabSource.SPARQL,
+#         'title': 'CGI Alteration Type (SPARQL)',
+#         'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+#         'download': 'rdf_test',
+#         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/alterationtype',
+#     },
+#     'IGSN methodType': {
+#         'source': VocabSource.SPARQL,
+#         'title': 'IGSN Method Type (SPARQL)',
+#         'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+#         'download': 'rdf_test',
+#         'vocab_uri': 'http://pid.geoscience.gov.au/def/voc/ga/igsncode/methodType',
+#     },
+#     'CGI Simple Lithology': {
+#         'source': VocabSource.SPARQL,
+#         'title': 'CGI Simple Lithology (SPARQL)',
+#         'sparql': 'http://dev2.nextgen.vocabs.ga.gov.au/fuseki/vocabs',
+#         'download': 'rdf_test',
+#         'vocab_uri': 'http://resource.geosciml.org/classifier/cgi/lithology',
+#     },
+# }
+#===============================================================================
     #===========================================================================
     # 'methodType': {
     #     'source': VocabSource.SPARQL,
@@ -149,7 +231,8 @@ VOCABS = {
     #     'title': 'Stratigraphic Rank File'
     # }
     #===========================================================================
-}
+VOCABS = get_cgi_vocabs('http://52.65.31.119/fuseki/vocabs', 
+                        SPARQL_CREDENTIALS['http://52.65.31.119/fuseki/vocabs'])
 
 #
 # -- Startup tasks -----------------------------------------------------------------------------------------------------
