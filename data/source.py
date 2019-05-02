@@ -199,27 +199,6 @@ class Source:
                 
             print('item_level: {} current_level: {} next_item_level: {}'.format(item_level, current_level, next_item_level))
             
-#===============================================================================
-#             # Close of levels of detail if going from higher to lower level
-#             for level in range(current_level, item_level, -1):
-#                 print('Closing level {}'.format(level))
-#                 html += '''
-# {indent}</details>'''.format(indent='  '*level)          
-#             
-#             
-#             print('Opening level {}'.format(item_level))
-#             
-#             if item_level > current_level:
-#                 html += '''
-# {indent}<details>'''.format(indent='  '*current_level)
-#             
-#             # Make sure levels only go up by one
-#             assert (item_level < current_level 
-#                     or item_level == current_level
-#                     or item_level == current_level + 1), 'Invalid item_level: {} (current_level: {})'.format(item_level, current_level)
-#                     
-#             current_level = item_level
-#===============================================================================
             if next_item_level > item_level: # Item has children
                 html += '''
 {indent}<details>'''.format(indent='  '*(item_level))      
@@ -237,22 +216,11 @@ class Source:
                 print('Closing level {}'.format(level))
                 html += '''
 {indent}</details>'''.format(indent='  '*(level-1))          
-#===============================================================================
-#                 html += '''
-# {indent}</details>'''.format(indent='  '*(item_level-1))      
-#===============================================================================
 
-#===============================================================================
-#         # Close of any open levels
-#         for level in range(current_level, 0, -1):
-#             html += '''
-# {indent}</details>'''.format(indent='  '*level)         
-#===============================================================================
-
-        # Close off definition
+        # Close off treeview definition
         html += '''
 </div>
 '''
         
-        print(html)
+        #print(html)
         return html      
