@@ -60,33 +60,33 @@ ORDER BY ?vocab'''
             continue
         
         try:
-            tag = re.search('[^/]+$', binding['vocab']['value']).group(0)
+            vocab_id = re.search('[^/]+$', binding['vocab']['value']).group(0)
         except AttributeError:
-            tag = re.search('([^/]+)/$', binding['vocab']['value']).group(1) # trailing "/"
+            vocab_id = re.search('([^/]+)/$', binding['vocab']['value']).group(1) # trailing "/"
             
         try:
-            version = re.search('/cgi/([^/]+)/' + tag, binding['vocab']['value']).group(1)
-            tag += '_' + version
+            version = re.search('/cgi/([^/]+)/' + vocab_id, binding['vocab']['value']).group(1)
+            vocab_id += '_' + version
         except:
             version = None
             
         # Keep shortest URI
-        if vocabs_dict.get(tag):
-            if len(binding['vocab']['value']) > len(vocabs_dict[tag]['vocab_uri']):
+        if vocabs_dict.get(vocab_id):
+            if len(binding['vocab']['value']) > len(vocabs_dict[vocab_id]['vocab_uri']):
                 continue
     
-        vocabs_dict[tag] = {
+        vocabs_dict[vocab_id] = {
             'source': VocabSource.SPARQL,
             'title': (binding['vocab_title']['value'] if binding.get('vocab_title') else None 
                       or binding['vocab_label']['value']),
             'sparql': sparql_endpoint,
-            'download': 'rdf_test',
+            'download': '/ttl/' + vocab_id,
             'fuseki_dataset' : 'yes',
             'vocab_uri': binding['vocab']['value'],
             }
         
         if version:
-            vocabs_dict[tag]['title'] += ' (' + version + ')'
+            vocabs_dict[vocab_id]['title'] += ' (' + version + ')'
         
     return vocabs_dict
 
