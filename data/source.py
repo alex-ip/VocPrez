@@ -185,7 +185,6 @@ class Source:
 #===============================================================================
         pprint(hierarchy)
         
-        current_level = 0
         html = '''
 <div class="treeview">'''
         
@@ -197,7 +196,7 @@ class Source:
             else:
                 next_item_level = 1
                 
-            print('item_level: {} current_level: {} next_item_level: {}'.format(item_level, current_level, next_item_level))
+            print('item_level: {} next_item_level: {}'.format(item_level, next_item_level))
             
             if next_item_level > item_level: # Item has children
                 html += '''
@@ -222,5 +221,5 @@ class Source:
 </div>
 '''
         
-        #print(html)
+        print(html)
         return html      
