@@ -5,6 +5,8 @@ from rdflib.namespace import SKOS
 import markdown
 import pickle
 import os
+import re
+from pprint import pprint
 
 
 class Source:
@@ -99,6 +101,9 @@ class Source:
         """
         return self._delegator(sys._getframe().f_code.co_name)(uri)
 
+    def get_ttl(self):
+        return self._delegator(sys._getframe().f_code.co_name)()
+
     @staticmethod
     def get_prefLabel_from_uri(uri):
         return ' '.join(str(uri).split('#')[-1].split('/')[-1].split('_'))
@@ -143,36 +148,111 @@ class Source:
 
     @staticmethod
     def draw_concept_hierarchy(hierarchy, request, id):
-        tab = '\t'
-        previous_length = 1
+#===============================================================================
+#         tab = '\t'
+#         previous_length = 1
+# 
+#         text = ''
+#         tracked_items = []
+#         for item in hierarchy:
+#             mult = None
+# 
+#             if item[0] > previous_length + 2: # SPARQL query error on length value
+#                 for tracked_item in tracked_items:
+#                     if tracked_item['name'] == item[3]:
+#                         mult = tracked_item['indent'] + 1
+# 
+#             if mult is None:
+#                 found = False
+#                 for tracked_item in tracked_items:
+#                     if tracked_item['name'] == item[3]:
+#                         found = True
+#                 if not found:
+#                     mult = 0
+# 
+#             if mult is None:#else: # everything is normal
+#                 mult = item[0] - 1
+# 
+#             tag = str(mult+1) # indent info to be displayed
+# 
+#             import helper as h
+#             t = tab * mult + '* [' + item[2] + '](' + request.url_root + 'object?vocab_id=' + id + '&uri=' + h.url_encode(item[1]) + ') (' + tag + ')\n'
+#             text += t
+#             previous_length = mult
+#             tracked_items.append({'name': item[1], 'indent': mult})
+# 
+#         return markdown.markdown(text)
+#===============================================================================
+        pprint(hierarchy)
+        
+        current_level = 0
+        html = '''
+<div class="treeview">'''
+        
+        for item_index in range(len(hierarchy)):
+            item_level, item_uri, item_name, _broader_uri = hierarchy[item_index]
+            
+            if item_index < len(hierarchy) - 1:
+                next_item_level = hierarchy[item_index + 1][0]
+            else:
+                next_item_level = 1
+                
+            print('item_level: {} current_level: {} next_item_level: {}'.format(item_level, current_level, next_item_level))
+            
+#===============================================================================
+#             # Close of levels of detail if going from higher to lower level
+#             for level in range(current_level, item_level, -1):
+#                 print('Closing level {}'.format(level))
+#                 html += '''
+# {indent}</details>'''.format(indent='  '*level)          
+#             
+#             
+#             print('Opening level {}'.format(item_level))
+#             
+#             if item_level > current_level:
+#                 html += '''
+# {indent}<details>'''.format(indent='  '*current_level)
+#             
+#             # Make sure levels only go up by one
+#             assert (item_level < current_level 
+#                     or item_level == current_level
+#                     or item_level == current_level + 1), 'Invalid item_level: {} (current_level: {})'.format(item_level, current_level)
+#                     
+#             current_level = item_level
+#===============================================================================
+            if next_item_level > item_level: # Item has children
+                html += '''
+{indent}<details>'''.format(indent='  '*(item_level))      
+          
+            # Write summary
+            html += '''
+{indent}<summary id="{item_id}"><a href={item_uri}>{item_name}</a></summary>'''.format(
+    indent='  '*item_level, 
+    item_id=re.search('/([^/]+)(/*)$', item_uri).group(1),
+    item_name=('- - - '*(item_level-1))+item_name,
+    item_uri=item_uri
+    )
+            # Close of levels of detail if going from higher to lower level
+            for level in range(item_level, next_item_level, -1):
+                print('Closing level {}'.format(level))
+                html += '''
+{indent}</details>'''.format(indent='  '*(level-1))          
+#===============================================================================
+#                 html += '''
+# {indent}</details>'''.format(indent='  '*(item_level-1))      
+#===============================================================================
 
-        text = ''
-        tracked_items = []
-        for item in hierarchy:
-            mult = None
+#===============================================================================
+#         # Close of any open levels
+#         for level in range(current_level, 0, -1):
+#             html += '''
+# {indent}</details>'''.format(indent='  '*level)         
+#===============================================================================
 
-            if item[0] > previous_length + 2: # SPARQL query error on length value
-                for tracked_item in tracked_items:
-                    if tracked_item['name'] == item[3]:
-                        mult = tracked_item['indent'] + 1
-
-            if mult is None:
-                found = False
-                for tracked_item in tracked_items:
-                    if tracked_item['name'] == item[3]:
-                        found = True
-                if not found:
-                    mult = 0
-
-            if mult is None:#else: # everything is normal
-                mult = item[0] - 1
-
-            tag = str(mult+1) # indent info to be displayed
-
-            import helper as h
-            t = tab * mult + '* [' + item[2] + '](' + request.url_root + 'object?vocab_id=' + id + '&uri=' + h.url_encode(item[1]) + ') (' + tag + ')\n'
-            text += t
-            previous_length = mult
-            tracked_items.append({'name': item[1], 'indent': mult})
-
-        return markdown.markdown(text)
+        # Close off definition
+        html += '''
+</div>
+'''
+        
+        print(html)
+        return html      
