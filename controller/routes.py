@@ -145,6 +145,20 @@ def vocabulary(vocab_id):
     ).render()
 
 
+@routes.route('/ttl/<vocab_id>')
+def get_ttl(vocab_id):
+    if vocab_id not in config.VOCABS.keys():
+        return render_invalid_vocab_id_response()
+
+    try:
+        return Response(Source(vocab_id, request).get_ttl(),
+                        mimetype="application/turtle",
+                        headers={"Content-Disposition":
+                                 "attachment;filename={}.ttl".format(vocab_id)})
+    except VbException as e:
+        return render_vb_exception_response(e)
+
+
 @routes.route('/vocabulary/<vocab_id>/concept/')
 def vocabulary_list(vocab_id):
     if vocab_id not in config.VOCABS.keys():

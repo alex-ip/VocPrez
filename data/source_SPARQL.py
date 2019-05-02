@@ -3,6 +3,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import _config as config
 from rdflib import Graph, RDF, URIRef
 from rdflib.namespace import SKOS
+from SPARQLWrapper.Wrapper import TURTLE
+from pprint import pprint
 
 class SPARQL(Source):
     """Source for SPARQL endpoint
@@ -679,12 +681,12 @@ WHERE {{
 
         return None
 
-    def get_sparqlwrapper(self):
+    def get_sparqlwrapper(self, return_format=JSON):
         '''
         Helper function to set up and return a SPARQLWrapper instance
         '''
         sparql_wrapper = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
-        sparql_wrapper.setReturnFormat(JSON)
+        sparql_wrapper.setReturnFormat(return_format)
         
         if (hasattr(config, 'SPARQL_CREDENTIALS')
             and config.SPARQL_CREDENTIALS.get(config.VOCABS.get(self.vocab_id).get('sparql'))):
@@ -692,3 +694,29 @@ WHERE {{
             sparql_wrapper.setCredentials(sparql_credentials['username'], sparql_credentials['password'])
         
         return sparql_wrapper
+    
+    def get_ttl(self):
+        '''
+        Function to return turtle for vocab
+        '''
+        sparql_wrapper = self.get_sparqlwrapper(return_format=TURTLE)
+
+        #query = '''describe <{vocab_uri}>'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        query='''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+describe *
+from <{vocab_uri}>
+{{
+    {{<{vocab_uri}> a skos:Collection .
+    <{vocab_uri}> skos:member ?concept .}}
+    UNION 
+    {{<{vocab_uri}> a skos:ConceptScheme .
+    ?concept skos:inScheme <{vocab_uri}> .}}
+    }}
+'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
+        print(query)
+        sparql_wrapper.setQuery(query)
+        pprint(sparql_wrapper.__dict__)
+        return sparql_wrapper.query().response.read()
+        
