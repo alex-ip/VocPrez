@@ -183,7 +183,7 @@ class Source:
 # 
 #         return markdown.markdown(text)
 #===============================================================================
-        pprint(hierarchy)
+        #pprint(hierarchy)
         
         html = '''
 <div class="treeview">'''
@@ -196,9 +196,9 @@ class Source:
             else:
                 next_item_level = 1
                 
-            print('item_level: {} next_item_level: {}'.format(item_level, next_item_level))
+            #print('item_level: {} next_item_level: {}'.format(item_level, next_item_level))
             
-            if next_item_level > item_level: # Item has children
+            if True:#next_item_level > item_level: # Item has children
                 html += '''
 {indent}<details>'''.format(indent='  '*(item_level))      
           
@@ -211,10 +211,10 @@ class Source:
     item_uri=item_uri
     )
             # Close of levels of detail if going from higher to lower level
-            for level in range(item_level, next_item_level, -1):
-                print('Closing level {}'.format(level))
+            for level in range(item_level, next_item_level-1, -1):
+                #print('Closing level {}'.format(level))
                 html += '''
-{indent}</details>'''.format(indent='  '*(level-1))          
+{indent}</details>'''.format(indent='  '*(level))          
 
         # Close off treeview definition
         html += '''
