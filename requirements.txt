@@ -1,4 +1,5 @@
 flask
+flask_paginate
 rdflib
 rdflib-jsonld
 markdown

@@ -2,9 +2,11 @@ from pyldapi import Renderer, View
 from flask import Response, render_template, url_for
 from rdflib import Graph, URIRef, Literal, XSD, RDF
 from rdflib.namespace import DCTERMS, OWL, SKOS, Namespace, NamespaceManager
+from data.source import Source
 
 
 class Vocabulary:
+    
     def __init__(
             self,
             id,
@@ -43,8 +45,46 @@ class Vocabulary:
 
 
 class VocabularyRenderer(Renderer):
+    
+    # Keys must be in SPARQLWrapper.Wrapper._allowedFormats
+    SKOS_FORMAT_EXTENSIONS = {"json": "json", 
+                             "json-ld": "json", 
+                             "turtle": "ttl", 
+                             "n3": "n3", 
+                             "rdf+xml": "rdf"
+                             }
+    
     def __init__(self, request, vocab):
-        self.views = self._add_dcat_view()
+        
+        dcat_view_dict = {
+            'dcat': View(
+                'Dataset Catalogue Vocabulary (DCAT)',
+                'DCAT is an RDF vocabulary designed to facilitate interoperability between data catalogs published on '
+                'the Web.',
+                ['text/html', 'application/json'] + self.RDF_MIMETYPES,
+                'text/html',
+                languages=['en'],  # default 'en' only for now
+                namespace='http://www.w3.org/ns/dcat#'
+            )
+        }
+        
+        skos_view_dict = {
+            'skos': View(
+                'Simple Knowledge Organisation System (SKOS)',
+                'SKOS is a common data model for sharing and linking knowledge organization systems via the Web',
+                VocabularyRenderer.SKOS_FORMAT_EXTENSIONS,
+                'application/turtle',
+                languages=['en'],  # default 'en' only for now
+                namespace='http://www.w3.org/2004/02/skos/core#'
+            )
+        }
+        
+        self.views = {}
+        
+        self.views.update(dcat_view_dict)
+        self.views.update(skos_view_dict)
+        
+
         self.navs = [
             # '<a href="' + url_for('routes.vocabulary', vocab_id=vocab.id) + '/collection/">Collections</a> |',
             '<a href="' + url_for('routes.vocabulary', vocab_id=vocab.id) + '/concept/">Concepts</a> |'
@@ -59,27 +99,26 @@ class VocabularyRenderer(Renderer):
             'dcat'
         )
 
-    def _add_dcat_view(self):
-        return {
-            'dcat': View(
-                'Dataset Catalogue Vocabulary (DCAT)',
-                'DCAT is an RDF vocabulary designed to facilitate interoperability between data catalogs published on '
-                'the Web.',
-                ['text/html', 'application/json'] + self.RDF_MIMETYPES,
-                'text/html',
-                languages=['en'],  # default 'en' only for now
-                namespace='http://www.w3.org/ns/dcat#'
-            )
-        }
-
     def render(self):
         if self.view == 'alternates':
             if self.format == 'text/html':
                 return self._render_alternates_view_html({'title': 'Alternates View of ' + self.vocab.title, 'name': self.vocab.title})
             return self._render_alternates_view()
+
         elif self.view == 'dcat':
             if self.format in Renderer.RDF_SERIALIZER_MAP:
                 return self._render_dcat_rdf()
+            else:
+                return self._render_dcat_html()
+
+        elif self.view == 'skos':
+            if self.format in VocabularyRenderer.SKOS_FORMAT_EXTENSIONS:
+                file_extension = VocabularyRenderer.SKOS_FORMAT_EXTENSIONS[self.format]
+                return Response(Source(self.vocab.id, self.request).get_rdf(self.format),
+                        mimetype="application/turtle",
+                        headers={"Content-Disposition":
+                                 "attachment;filename={}.{}".format(self.vocab.id,
+                                                                    file_extension)})
             else:
                 return self._render_dcat_html()
 

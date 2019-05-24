@@ -151,7 +151,7 @@ def get_ttl(vocab_id):
         return render_invalid_vocab_id_response()
 
     try:
-        return Response(Source(vocab_id, request).get_ttl(),
+        return Response(Source(vocab_id, request).get_rdf("turtle"),
                         mimetype="application/turtle",
                         headers={"Content-Disposition":
                                  "attachment;filename={}.ttl".format(vocab_id)})

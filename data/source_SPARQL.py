@@ -3,7 +3,6 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import _config as config
 from rdflib import Graph, RDF, URIRef
 from rdflib.namespace import SKOS
-from SPARQLWrapper.Wrapper import TURTLE
 from pprint import pprint
 
 class SPARQL(Source):
@@ -681,12 +680,15 @@ WHERE {{
 
         return None
 
-    def get_sparqlwrapper(self, return_format=JSON):
+    def get_sparqlwrapper(self, 
+                          return_format=JSON,
+                          method='GET'):
         '''
         Helper function to set up and return a SPARQLWrapper instance
         '''
         sparql_wrapper = SPARQLWrapper(config.VOCABS.get(self.vocab_id).get('sparql'))
         sparql_wrapper.setReturnFormat(return_format)
+        sparql_wrapper.setMethod(method)
         
         if (hasattr(config, 'SPARQL_CREDENTIALS')
             and config.SPARQL_CREDENTIALS.get(config.VOCABS.get(self.vocab_id).get('sparql'))):
@@ -695,11 +697,11 @@ WHERE {{
         
         return sparql_wrapper
     
-    def get_ttl(self):
+    def get_rdf(self, return_format="turtle"):
         '''
-        Function to return turtle for vocab
+        Function to return SKOS RDF for vocab
         '''
-        sparql_wrapper = self.get_sparqlwrapper(return_format=TURTLE)
+        sparql_wrapper = self.get_sparqlwrapper(return_format=return_format)
 
         #query = '''describe <{vocab_uri}>'''.format(vocab_uri=config.VOCABS.get(self.vocab_id).get('vocab_uri'))
         query='''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>

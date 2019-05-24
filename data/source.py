@@ -6,7 +6,6 @@ import markdown
 import pickle
 import os
 import re
-from pprint import pprint
 
 
 class Source:
@@ -101,8 +100,11 @@ class Source:
         """
         return self._delegator(sys._getframe().f_code.co_name)(uri)
 
-    def get_ttl(self):
-        return self._delegator(sys._getframe().f_code.co_name)()
+    def get_rdf(self, return_format="turtle"):
+        '''
+        Function to return RDF in selected format
+        '''
+        return self._delegator(sys._getframe().f_code.co_name)(return_format)
 
     @staticmethod
     def get_prefLabel_from_uri(uri):
