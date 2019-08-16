@@ -2,7 +2,7 @@ from flask import Flask, request
 
 from config import Config
 from controller.routes import routes
-import helper
+from temp import helper
 from triplestore import Triplestore
 
 app = Flask(__name__)

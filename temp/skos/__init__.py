@@ -7,7 +7,7 @@ from config import Config
 from skos.concept_scheme import ConceptScheme, ConceptSchemeRenderer
 from skos.concept import Concept, ConceptRenderer
 from skos.register import Register
-import helper
+from temp import helper
 
 from datetime import date
 from urllib import parse
