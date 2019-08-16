@@ -1,0 +1,7 @@
+{% macro render(text) %}
+    {{ h.render(text)|safe }}
+{% endmacro %}
+
+{% macro render_instance_uri(uri, label) %}
+    {{ h.render_instance_uri(uri, label)|safe }}
+{% endmacro %}

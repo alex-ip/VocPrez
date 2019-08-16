@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% from "macros/popover.html" import popover_uri with context %}
+{% from "macros/render.html" import render_instance_uri with context %}
+
+{% block content %}
+    {{ popover_uri(title, 'URI', class_type, 'h2') }}
+
+    {% if description %}
+        <p>{{ description }}</p>
+    {% endif %}
+
+    <p>Alternate views of this register are available <a href="?_view=alternates">here</a></p>
+
+    <form style="max-width: 255px;" action="{{ request.base_url }}" method="get">
+        <div class="form-group">
+            <label for="search"><strong>Search for {{ title }}:</strong></label>
+            <input type="text" name="search" class="form-control" id="search" aria-describedby="search-help" placeholder="Search register">
+            <small id="search-help" class="form-text text-muted" hidden>Search for items in this register.</small>
+        </div>
+    </form>
+
+    {% if search_query %}
+        <p>Results for <em>"{{ search_query }}"</em></p>
+    {% endif %}
+
+    {% if items|length == 0 %}
+        <strong>No results found.</strong>
+    {% endif %}
+
+    {% if items %}
+        <p><em>Displaying {{ ((page - 1) * per_page) + 1 }} to {% if page * per_page < total_items %}{{ page * per_page }}{% else %}{{ total_items }}{% endif %} of {{ total_items }} items.</em></p>
+
+        <ul class="pagination">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ request.base_url }}?page={{ prev_page }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">Previous</a>
+            </li>
+            <li class="page-item disabled"><a class="page-link">{{ page }}</a></li>
+            <li class="page-item {% if page * per_page > total_items %}disabled{% endif %}">
+              <a class="page-link" href="{{ request.base_url }}?page={{ next_page }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">Next</a>
+            </li>
+        </ul>
+
+        {% for cc in items %}
+            <div class="card card-register col-lg-9">
+                <div class="card-body">
+                    <div class="card-title">{{ render_instance_uri(cc[0], cc[1]) }}</div>
+                    <hr>
+                    {% for prop in cc[2] %}
+                        {% if prop[0] %}
+                            <div class="card-text">{{ popover_uri(h.uri_label(prop[0]), 'URI', prop[0]) }}:
+                                {% if prop[1] %}
+                                    {% if h.is_list(prop[1]) %}
+                                        {{ render_instance_uri(prop[1][0][0], prop[1][0][1]) }}
+                                    {% else %}
+                                        {{ h.render_property_restricted(prop[1]) }}
+                                    {% endif %}
+                                {% else %}
+                                    <em>not supplied</em>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+            </div>
+        {% endfor %}
+
+        <ul class="pagination">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ request.base_url }}?page={{ prev_page }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">Previous</a>
+            </li>
+            <li class="page-item disabled"><a class="page-link">{{ page }}</a></li>
+            <li class="page-item {% if page * per_page > total_items %}disabled{% endif %}">
+              <a class="page-link" href="{{ request.base_url }}?page={{ next_page }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">Next</a>
+            </li>
+        </ul>
+
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,13 @@
+{#
+Input:
+    description - tuple(uri, description_string)
+#}
+
+{% macro render_description(description) %}
+    {% if description %}
+        {{ popover_uri('Description', 'URI', 'http://purl.org/dc/terms/description', 'h5') }}
+
+        {{ render(description[1]) }}
+    {% endif %}
+
+{% endmacro %}

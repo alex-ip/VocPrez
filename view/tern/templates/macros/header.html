@@ -1,0 +1,16 @@
+{% macro render_header(class_types, skos_type) %}
+    <div class="card-header">{{ popover_uri(skos_type[1], 'URI', skos_type[0]) }} |
+        {% for type in class_types %}
+            {{ popover_uri(type, 'URI', type) }}|
+        {% endfor %}
+
+        <div class="float-right">
+            {% if formats %}
+                {% for format in formats %}
+                    <a href="?_view=skos&_format={{ format[0] }}">{{ format[1] }}</a>
+                {% endfor %}|
+            {% endif %}
+            <a href="?_view=alternates">Alternates view</a>
+        </div>
+    </div>
+{% endmacro %}

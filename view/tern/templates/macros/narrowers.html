@@ -1,0 +1,16 @@
+{% macro render_narrowers(narrowers) %}
+    {% if narrowers %}
+
+        {{ popover_uri('Narrowers', 'URI', 'http://www.w3.org/2004/02/skos/core#narrower', 'h5') }}
+
+        <ul>
+            {% for narrower in narrowers %}
+
+                    <li>{{ render_instance_uri(narrower[0], narrower[1]) }}</li>
+
+            {% endfor %}
+        </ul>
+
+    {% endif %}
+
+{% endmacro %}

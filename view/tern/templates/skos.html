@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% from "macros/render.html" import render, render_instance_uri with context %}
+{% from "macros/popover.html" import popover_uri with context %}
+{% from "macros/date-metadata.html" import date_created, date_modified with context %}
+{% from "macros/header.html" import render_header with context %}
+{% from "macros/description.html" import render_description with context %}
+{% from "macros/change-note.html" import render_change_note with context %}
+{% from "macros/label.html" import render_label with context %}
+{% from "macros/definition.html" import render_definition with context %}
+{% from "macros/top_concept_of.html" import render_top_concept_of with context %}
+{% from "macros/broaders.html" import render_broaders with context %}
+{% from "macros/narrowers.html" import render_narrowers with context %}
+{% from "macros/alt_labels.html" import render_alt_labels with context %}
+{% from "macros/properties.html" import render_properties with context %}
+{% from "macros/in_scheme.html" import render_in_scheme with context %}
+{% from "macros/bibliographic_citation.html" import render_bib_citation with context %}
+{% from "macros/concept_hierarchy.html" import render_concept_hierarchy with context %}
+{% from "macros/rdfs_is_defined_by.html" import render_is_defined_by with context %}
+{% from "macros/close_match.html" import render_close_match with context %}
+{% from "macros/exact_match.html" import render_exact_match with context %}
+{% from "macros/schemaorg_parent_org.html" import render_parent_org with context %}
+{% from "macros/schemaorg_contact_point.html" import render_contact_point with context %}
+{% from "macros/schemaorg_members.html" import render_org_members with context %}
+{% from "macros/schemaorg_sub_orgs.html" import render_sub_orgs with context %}
+{% from "macros/schemaorg_family_name.html" import render_family_name with context %}
+{% from "macros/schemaorg_given_name.html" import render_given_name with context %}
+{% from "macros/schemaorg_honorific_prefix.html" import render_honorific_prefix with context %}
+{% from "macros/schemaorg_job_title.html" import render_job_title with context %}
+{% from "macros/schemaorg_member_of.html" import render_member_of with context %}
+
+{% block content %}
+
+
+    <div class="card">
+
+        {{ render_header(c.class_types, skos_class) }}
+
+        <div class="card-body">
+
+            {{ render_label(c.uri, c.label) }}
+
+            {{ render_alt_labels(c.alt_labels) }}
+
+            <p>
+                {{ date_created(c.created) }}<br>
+
+                {{ date_modified(c.modified) }}
+            </p>
+
+            {# Schema.org Person #}
+            {{ render_family_name(c.family_name) }}
+            {{ render_given_name(c.given_name) }}
+            {{ render_honorific_prefix(c.honorific_prefix) }}
+            {{ render_job_title(c.job_title) }}
+            {{ render_member_of(c.member_of) }}
+            {# end Schema.org Person #}
+
+            {# Schema.org Org #}
+            {{ render_parent_org(c.parent_organization) }}
+
+            {{ render_contact_point(c.contact_point) }}
+
+            {{ render_org_members(c.members) }}
+
+            {{ render_sub_orgs(c.sub_organizations) }}
+            {# end Schema.org Org #}
+
+            {{ render_in_scheme(c.in_scheme) }}
+
+            {{ render_description(c.description) }}
+
+            {{ render_definition(c.definition) }}
+
+            {{ render_is_defined_by(c.is_defined_by) }}
+
+            {{ render_top_concept_of(c.top_concept_of) }}
+
+            {{ render_broaders(c.broaders) }}
+
+            {{ render_narrowers(c.narrowers) }}
+
+            {{ render_exact_match(c.exact_match) }}
+
+            {{ render_close_match(c.close_match) }}
+
+            {% if c.top_concepts %}
+                {{ popover_uri('Top concepts', 'URI', 'http://www.w3.org/2004/02/skos/core#hasTopConcept', 'h5') }}
+                <ul>
+                    {% for tc in c.top_concepts %}
+                        <li>{{ render_instance_uri(tc[0], tc[1]) }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {{ render_concept_hierarchy(c.concept_hierarchy) }}
+
+            {{ render_change_note(c.change_note) }}
+
+            {{ render_properties(c.properties) }}
+
+            {{ render_bib_citation(c.bibliographic_citation) }}
+
+        </div>
+    </div>
+
+{% endblock %}
