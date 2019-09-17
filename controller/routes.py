@@ -12,6 +12,7 @@ from pyldapi import Renderer
 import controller.sparql_endpoint_functions
 import datetime
 import logging
+from munch import munchify
 
 routes = Blueprint('routes', __name__)
 
@@ -501,3 +502,35 @@ def endpoint():
                     'Accept header must be one of ' + ', '.join(acceptable_mimes) + '.',
                     status=400
                 )
+
+@routes.route('/concept/', methods=['GET'])
+def render_concept_register():
+    page = request.values.get('page')
+    if page is None:
+        page = 1
+
+    items = [] # skos.list_concepts()
+
+    query = request.values.get('search')
+    items = [] # process_search(query, items)
+    
+    total_items_count = len(items)
+    page_from = int(page)
+    page_size = 20
+
+    items = items[(page_from - 1) * page_size:page_size * page_from]
+
+    items = munchify(items)
+
+    r = SkosRegisterRenderer(request,
+                      'Register of SKOS concepts',
+                      'This register contains a listing of all SKOS concepts within this system.',
+                      items, ['http://www.w3.org/2004/02/skos/core#Concept'],
+                      total_items_count=total_items_count,
+                      register_template='register.html',
+                      title='Concepts',
+                      description='Register of all vocabulary concepts in this system.',
+                      search_query=query)
+    return r.render()
+
+
