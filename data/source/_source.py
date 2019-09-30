@@ -80,15 +80,11 @@ WHERE {{
             {{<{concept_scheme_uri}> a skos:ConceptScheme .
             ?c skos:inScheme <{concept_scheme_uri}> .}}
         union
-            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?c skos:inScheme ?currentVersionConceptScheme .}}
         union
-            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-            ?c skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-        union
-            {{<{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
-            ?c skos:inScheme ?equivalentConceptScheme .}}
+        {{<{vocab_uri}> a skos:ConceptScheme .
+        <{vocab_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+        ?equivalentConceptScheme a skos:ConceptScheme .
+        ?concept skos:inScheme ?equivalentConceptScheme .}}
         {{ ?c skos:prefLabel ?pl .
         FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
         }}
@@ -355,59 +351,41 @@ PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT distinct ?concept ?concept_preflabel ?broader_concept
 WHERE {{
     {{ GRAPH ?graph {{
-        {{ ?concept skos:inScheme <{vocab_uri}> .
+        {{<{vocab_uri}> a skos:ConceptScheme .
         ?concept skos:inScheme <{vocab_uri}> .}}
         union
-            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?concept skos:inScheme ?currentVersionConceptScheme .}}
-        union
-            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-            ?concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-        union
-            {{<{vocab_uri}> owl:sameAs ?equivalentConceptScheme .
-            ?concept skos:inScheme ?equivalentConceptScheme .}}       
+        {{<{vocab_uri}> a skos:ConceptScheme .
+        <{vocab_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+        ?equivalentConceptScheme a skos:ConceptScheme .
+        ?concept skos:inScheme ?equivalentConceptScheme .}}
         ?concept skos:prefLabel ?concept_preflabel .
         OPTIONAL {{ ?concept skos:broader ?broader_concept .
             {{ ?broader_concept skos:inScheme <{vocab_uri}> .}}
             union
-            {{ ?broader_concept skos:inScheme ?currentVersionConceptScheme .}}
-            union
-            {{ ?broader_concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-            union
             {{ ?broader_concept skos:inScheme ?equivalentConceptScheme .}}
-            }}
+        }}
         FILTER(lang(?concept_preflabel) = "{language}" || lang(?concept_preflabel) = "")
     }} }}
     UNION
     {{
-        {{ ?concept skos:inScheme <{vocab_uri}> .
+        {{<{vocab_uri}> a skos:ConceptScheme .
         ?concept skos:inScheme <{vocab_uri}> .}}
         union
-            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?concept skos:inScheme ?currentVersionConceptScheme .}}
-        union
-            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-            ?concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-        union
-            {{<{vocab_uri}> owl:sameAs ?equivalentConceptScheme .
-            ?concept skos:inScheme ?equivalentConceptScheme .}}       
+        {{<{vocab_uri}> a skos:ConceptScheme .
+        <{vocab_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+        ?equivalentConceptScheme a skos:ConceptScheme .
+        ?concept skos:inScheme ?equivalentConceptScheme .}}
         ?concept skos:prefLabel ?concept_preflabel .
         OPTIONAL {{ ?concept skos:broader ?broader_concept .
             {{ ?broader_concept skos:inScheme <{vocab_uri}> .}}
             union
-            {{ ?broader_concept skos:inScheme ?currentVersionConceptScheme .}}
-            union
-            {{ ?broader_concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-            union
             {{ ?broader_concept skos:inScheme ?equivalentConceptScheme .}}
-            }}
+        }}
         FILTER(lang(?concept_preflabel) = "{language}" || lang(?concept_preflabel) = "")
     }}
 }}
 ORDER BY ?concept_preflabel'''.format(vocab_uri=vocab.concept_scheme_uri, language=self.language)
-
+        #print(query)
         bindings_list = Source.sparql_query(vocab.sparql_endpoint, query, vocab.sparql_username, vocab.sparql_password)
         #print(bindings_list)
         assert bindings_list is not None, 'SPARQL concept hierarchy query failed'
@@ -531,103 +509,58 @@ PREFIX ldv: <http://purl.org/linked-data/version#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?tc ?pl
 WHERE {{
-    {{ GRAPH ?g 
+    {{ GRAPH ?g {{
         {{
+            <{concept_scheme_uri}> a skos:ConceptScheme .
             {{
-                <{concept_scheme_uri}> skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                ?tc skos:topConceptOf <{concept_scheme_uri}> .
-            }}
-            UNION
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?tc skos:topConceptOf ?currentVersionConceptScheme .
-            }}            
-            UNION
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?equivalentCurrentVersionConceptScheme skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?tc skos:topConceptOf ?equivalentCurrentVersionConceptScheme .
-            }}            
-            UNION
-            {{
-                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
-                ?equivalentConceptScheme skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
-                ?tc skos:topConceptOf ?equivalentConceptScheme .
-            }}            
-            {{ ?tc skos:prefLabel ?pl .
-                FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
+                {{<{concept_scheme_uri}> skos:hasTopConcept ?tc .}}
+                union
+                {{?tc skos:topConceptOf <{concept_scheme_uri}> .}}
             }}
         }}
-    }}
+        union
+        {{
+            <{concept_scheme_uri}> a skos:ConceptScheme .
+            <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+            ?equivalentConceptScheme a skos:ConceptScheme .
+            {{
+                {{?equivalentConceptScheme skos:hasTopConcept ?tc .}}
+                union
+                {{?tc skos:topConceptOf ?equivalentConceptScheme .}}
+            }}
+        }}
+        ?tc skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "{language}" || lang(?pl) = "")
+    }} }}
     UNION
     {{
         {{
+            <{concept_scheme_uri}> a skos:ConceptScheme .
             {{
-                <{concept_scheme_uri}> skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                ?tc skos:topConceptOf <{concept_scheme_uri}> .
-            }}
-            UNION
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?tc skos:topConceptOf ?currentVersionConceptScheme .
-            }}            
-            UNION
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?equivalentCurrentVersionConceptScheme skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?tc skos:topConceptOf ?equivalentCurrentVersionConceptScheme .
-            }}            
-            UNION
-            {{
-                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
-                ?equivalentConceptScheme skos:hasTopConcept ?tc .                
-            }}
-            UNION 
-            {{
-                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
-                ?tc skos:topConceptOf ?equivalentConceptScheme .
-            }}            
-            {{ ?tc skos:prefLabel ?pl .
-                FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
+                {{<{concept_scheme_uri}> skos:hasTopConcept ?tc .}}
+                union
+                {{?tc skos:topConceptOf <{concept_scheme_uri}> .}}
             }}
         }}
+        union
+        {{
+            <{concept_scheme_uri}> a skos:ConceptScheme .
+            <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+            ?equivalentConceptScheme a skos:ConceptScheme .
+            {{
+                {{?equivalentConceptScheme skos:hasTopConcept ?tc .}}
+                union
+                {{?tc skos:topConceptOf ?equivalentConceptScheme .}}
+            }}
+        }}
+        ?tc skos:prefLabel ?pl .
+        FILTER(lang(?pl) = "{language}" || lang(?pl) = "")
     }}
 }}
 ORDER BY ?pl
 '''.format(concept_scheme_uri=vocab.concept_scheme_uri,
                                    language=self.language)
+        #print(q)
         top_concepts = Source.sparql_query(vocab.sparql_endpoint, q, vocab.sparql_username, vocab.sparql_password)
         
         if top_concepts is not None:
@@ -785,19 +718,12 @@ WHERE  {{
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
             {{
-                {{?subject skos:inScheme <{uri}> .}}
+                {{<{uri}> a skos:ConceptScheme .
+                ?subject skos:inScheme <{uri}> .}}
                 union
                 {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?subject skos:inScheme ?currentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?subject skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+                ?equivalentConceptScheme a skos:ConceptScheme .
                 ?subject skos:inScheme ?equivalentConceptScheme .}}
             }}
         }}
@@ -805,19 +731,12 @@ WHERE  {{
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
             {{
-                {{?object skos:inScheme <{uri}> .}}
+                {{<{uri}> a skos:ConceptScheme .
+                ?object skos:inScheme <{uri}> .}}
                 union
                 {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?object skos:inScheme ?currentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?object skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+                ?equivalentConceptScheme a skos:ConceptScheme .
                 ?object skos:inScheme ?equivalentConceptScheme .}}
             }}
         }}
@@ -833,19 +752,12 @@ WHERE  {{
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
             {{
-                {{?subject skos:inScheme <{uri}> .}}
+                {{<{uri}> a skos:ConceptScheme .
+                ?subject skos:inScheme <{uri}> .}}
                 union
                 {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?subject skos:inScheme ?currentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?subject skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+                ?equivalentConceptScheme a skos:ConceptScheme .
                 ?subject skos:inScheme ?equivalentConceptScheme .}}
             }}
         }}
@@ -853,19 +765,12 @@ WHERE  {{
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
             {{
-                {{?object skos:inScheme <{uri}> .}}
+                {{<{uri}> a skos:ConceptScheme .
+                ?object skos:inScheme <{uri}> .}}
                 union
                 {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?object skos:inScheme ?currentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
-                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-                ?object skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
+                ?equivalentConceptScheme a skos:ConceptScheme .
                 ?object skos:inScheme ?equivalentConceptScheme .}}
             }}
         }}
