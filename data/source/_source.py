@@ -407,7 +407,7 @@ WHERE {{
     }}
 }}
 ORDER BY ?concept_preflabel'''.format(vocab_uri=vocab.concept_scheme_uri, language=self.language)
-        print(query)
+
         bindings_list = Source.sparql_query(vocab.sparql_endpoint, query, vocab.sparql_username, vocab.sparql_password)
         #print(bindings_list)
         assert bindings_list is not None, 'SPARQL concept hierarchy query failed'
@@ -767,9 +767,10 @@ ORDER BY ?pl
         
         vocab = g.VOCABS[self.vocab_id]
         
-        q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX rdfs: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX ldv: <http://purl.org/linked-data/version#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 
 CONSTRUCT {{ ?subject ?predicate ?object }}
@@ -783,12 +784,42 @@ WHERE  {{
         union
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
-            ?subject skos:inScheme <{uri}> .
+            {{
+                {{?subject skos:inScheme <{uri}> .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?subject skos:inScheme ?currentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?subject skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                ?subject skos:inScheme ?equivalentConceptScheme .}}
+            }}
         }}
         union
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
-            ?object skos:inScheme <{uri}> .
+            {{
+                {{?object skos:inScheme <{uri}> .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?object skos:inScheme ?currentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?object skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                ?object skos:inScheme ?equivalentConceptScheme .}}
+            }}
         }}
     }} }}
     UNION
@@ -801,22 +832,52 @@ WHERE  {{
         union
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
-            ?subject skos:inScheme <{uri}> .
+            {{
+                {{?subject skos:inScheme <{uri}> .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?subject skos:inScheme ?currentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?subject skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                ?subject skos:inScheme ?equivalentConceptScheme .}}
+            }}
         }}
         union
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
-            ?object skos:inScheme <{uri}> .
+            {{
+                {{?object skos:inScheme <{uri}> .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?object skos:inScheme ?currentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?object skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+                union
+                {{<{uri}> a skos:ConceptScheme .
+                <{uri}> owl:sameAs ?equivalentConceptScheme .
+                ?object skos:inScheme ?equivalentConceptScheme .}}
+            }}
         }}
     }}
     FILTER(STRSTARTS(STR(?predicate), STR(rdfs:))
         || STRSTARTS(STR(?predicate), STR(skos:))
         || STRSTARTS(STR(?predicate), STR(dct:))
+        || STRSTARTS(STR(?predicate), STR(ldv:))
         || STRSTARTS(STR(?predicate), STR(owl:))
         )
 }}'''.format(uri=vocab.uri)
         #print(q)
-            
         self._graph = Source.get_graph(vocab.sparql_endpoint, q, sparql_username=vocab.sparql_username, sparql_password=vocab.sparql_password)
         cache_write(self._graph, cache_file_name)
         return self._graph
