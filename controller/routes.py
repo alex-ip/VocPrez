@@ -153,7 +153,7 @@ def vocabulary(vocab_id):
 
     # get vocab details using appropriate source handler
     try:
-        vocab = Source(vocab_id, request, language).get_vocabulary()
+        vocab = Source(vocab_id, request, language).vocabulary
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -267,7 +267,7 @@ def object():
             ).render()
             
         elif c == 'http://www.w3.org/2004/02/skos/core#ConceptScheme':
-            vocabulary = vocab_source.get_vocabulary()
+            vocabulary = vocab_source.vocabulary
 
             return VocabularyRenderer(
                 request,
