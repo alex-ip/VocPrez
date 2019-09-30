@@ -72,10 +72,23 @@ WHERE {{
         vocab = g.VOCABS[self.vocab_id]
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
-SELECT DISTINCT *
+PREFIX ldv: <http://purl.org/linked-data/version#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT DISTINCT ?c ?pl ?d ?created ?modified
 WHERE {{
     {{ GRAPH ?g {{
-        ?c skos:inScheme <{concept_scheme_uri}> . 
+            {{<{concept_scheme_uri}> a skos:ConceptScheme .
+            ?c skos:inScheme <{concept_scheme_uri}> .}}
+        union
+            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?c skos:inScheme ?currentVersionConceptScheme .}}
+        union
+            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+            ?c skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+        union
+            {{<{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
+            ?c skos:inScheme ?equivalentConceptScheme .}}
         {{ ?c skos:prefLabel ?pl .
         FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
         }}
@@ -87,7 +100,18 @@ WHERE {{
     }} }}
     UNION
     {{
-        ?c skos:inScheme <{concept_scheme_uri}> . 
+            {{<{concept_scheme_uri}> a skos:ConceptScheme .
+            ?c skos:inScheme <{concept_scheme_uri}> .}}
+        union
+            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?c skos:inScheme ?currentVersionConceptScheme .}}
+        union
+            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+            ?c skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+        union
+            {{<{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
+            ?c skos:inScheme ?equivalentConceptScheme .}}
         {{ ?c skos:prefLabel ?pl .
         FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
         }}
@@ -326,28 +350,64 @@ WHERE {{
         query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX ldv: <http://purl.org/linked-data/version#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT distinct ?concept ?concept_preflabel ?broader_concept
 WHERE {{
     {{ GRAPH ?graph {{
-        ?concept skos:inScheme <{vocab_uri}> .
+        {{ ?concept skos:inScheme <{vocab_uri}> .
+        ?concept skos:inScheme <{vocab_uri}> .}}
+        union
+            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?concept skos:inScheme ?currentVersionConceptScheme .}}
+        union
+            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+            ?concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+        union
+            {{<{vocab_uri}> owl:sameAs ?equivalentConceptScheme .
+            ?concept skos:inScheme ?equivalentConceptScheme .}}       
         ?concept skos:prefLabel ?concept_preflabel .
         OPTIONAL {{ ?concept skos:broader ?broader_concept .
-            ?broader_concept skos:inScheme <{vocab_uri}> .
+            {{ ?broader_concept skos:inScheme <{vocab_uri}> .}}
+            union
+            {{ ?broader_concept skos:inScheme ?currentVersionConceptScheme .}}
+            union
+            {{ ?broader_concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+            union
+            {{ ?broader_concept skos:inScheme ?equivalentConceptScheme .}}
             }}
         FILTER(lang(?concept_preflabel) = "{language}" || lang(?concept_preflabel) = "")
     }} }}
     UNION
     {{
-        ?concept skos:inScheme <{vocab_uri}> .
+        {{ ?concept skos:inScheme <{vocab_uri}> .
+        ?concept skos:inScheme <{vocab_uri}> .}}
+        union
+            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?concept skos:inScheme ?currentVersionConceptScheme .}}
+        union
+            {{<{vocab_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+            ?concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+        union
+            {{<{vocab_uri}> owl:sameAs ?equivalentConceptScheme .
+            ?concept skos:inScheme ?equivalentConceptScheme .}}       
         ?concept skos:prefLabel ?concept_preflabel .
         OPTIONAL {{ ?concept skos:broader ?broader_concept .
-            ?broader_concept skos:inScheme <{vocab_uri}> .
+            {{ ?broader_concept skos:inScheme <{vocab_uri}> .}}
+            union
+            {{ ?broader_concept skos:inScheme ?currentVersionConceptScheme .}}
+            union
+            {{ ?broader_concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
+            union
+            {{ ?broader_concept skos:inScheme ?equivalentConceptScheme .}}
             }}
         FILTER(lang(?concept_preflabel) = "{language}" || lang(?concept_preflabel) = "")
     }}
 }}
 ORDER BY ?concept_preflabel'''.format(vocab_uri=vocab.concept_scheme_uri, language=self.language)
-        #print(query)
+        print(query)
         bindings_list = Source.sparql_query(vocab.sparql_endpoint, query, vocab.sparql_username, vocab.sparql_password)
         #print(bindings_list)
         assert bindings_list is not None, 'SPARQL concept hierarchy query failed'
@@ -464,7 +524,11 @@ WHERE {{
 
     def get_top_concepts(self):
         vocab = g.VOCABS[self.vocab_id]
-        q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        q = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX ldv: <http://purl.org/linked-data/version#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?tc ?pl
 WHERE {{
     {{ GRAPH ?g 
@@ -476,6 +540,38 @@ WHERE {{
             {{
                 ?tc skos:topConceptOf <{concept_scheme_uri}> .
             }}
+            UNION
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?tc skos:topConceptOf ?currentVersionConceptScheme .
+            }}            
+            UNION
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?equivalentCurrentVersionConceptScheme skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?tc skos:topConceptOf ?equivalentCurrentVersionConceptScheme .
+            }}            
+            UNION
+            {{
+                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
+                ?equivalentConceptScheme skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
+                ?tc skos:topConceptOf ?equivalentConceptScheme .
+            }}            
             {{ ?tc skos:prefLabel ?pl .
                 FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
             }}
@@ -484,14 +580,48 @@ WHERE {{
     UNION
     {{
         {{
-            <{concept_scheme_uri}> skos:hasTopConcept ?tc .                
-        }}
-        UNION 
-        {{
-            ?tc skos:topConceptOf <{concept_scheme_uri}> .
-        }}
-        {{ ?tc skos:prefLabel ?pl .
-            FILTER(lang(?pl) = "{language}" || lang(?pl) = "")
+            {{
+                <{concept_scheme_uri}> skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                ?tc skos:topConceptOf <{concept_scheme_uri}> .
+            }}
+            UNION
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?tc skos:topConceptOf ?currentVersionConceptScheme .
+            }}            
+            UNION
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?equivalentCurrentVersionConceptScheme skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                <{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
+                ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
+                ?tc skos:topConceptOf ?equivalentCurrentVersionConceptScheme .
+            }}            
+            UNION
+            {{
+                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
+                ?equivalentConceptScheme skos:hasTopConcept ?tc .                
+            }}
+            UNION 
+            {{
+                <{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
+                ?tc skos:topConceptOf ?equivalentConceptScheme .
+            }}            
+            {{ ?tc skos:prefLabel ?pl .
+                FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
+            }}
         }}
     }}
 }}
