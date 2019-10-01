@@ -6,27 +6,27 @@
 <h3>URI: <a href="{{ uri }}">{{ uri }}</a></h3>
 <div class="overflow">
     <table class="metadata concept_scheme">
-        {%  if vocab.description is not none  -%}
+        {%  if vocab.description is not none -%}
         <tr>
             <th>Description:</th><td>{{ vocab.description }}</td>
         </tr>
         {% endif -%}
-        {%  if vocab.creator is not none  -%}
+        {%  if vocab.creator is not none -%}
         <tr>
             <th>Creator:</th><td><a href="{{ vocab.creator }}">{{ vocab.creator.split('/')[-1].split('#')[-1] }}</a></td>
         </tr>
         {% endif -%}
-        {%  if vocab.created is not none  -%}
+        {%  if vocab.created is not none -%}
         <tr>
             <th>Created:</th><td>{{ vocab.created.strftime('%Y-%m-%d') }}</td>
         </tr>
         {% endif -%}
-        {%  if vocab.modified is not none  -%}
+        {%  if vocab.modified is not none -%}
         <tr>
             <th>Modified:</th><td>{{ vocab.modified.strftime('%Y-%m-%d') }}</td>
         </tr>
         {% endif -%}
-        {%  if vocab.versionInfo is not none  -%}
+        {%  if vocab.versionInfo is not none -%}
         <tr>
             <th>Version Info:</th><td>{{ vocab.versionInfo }}</td>
         </tr>
@@ -39,7 +39,7 @@
             </td>
         </tr>
         {% endif -%}
-        {%  if vocab.hasTopConcept is not none  -%}
+        {%  if vocab.hasTopConcept is not none -%}
         <tr>
             <th>Top Concepts:</th>
             <td>
@@ -53,7 +53,7 @@
             </td>
         </tr>
         {% endif -%}
-        {%  if vocab.concept_hierarchy is not none and vocab.concept_hierarchy|length > 0  -%}
+        {%  if vocab.concept_hierarchy is not none and vocab.concept_hierarchy|length > 0 -%}
         <tr>
             <th>Concept Hierarchy:</th>
             <td>
