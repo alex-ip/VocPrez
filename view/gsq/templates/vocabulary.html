@@ -39,11 +39,11 @@
             </td>
         </tr>
         {% endif -%}
-        {%  if vocab.hasTopConcept is not none -%}
+        {%  if vocab.hasTopConcepts is not none -%}
         <tr>
             <th>Top Concepts:</th>
             <td>
-            {% for tc in vocab.hasTopConcept -%}
+            {% for tc in vocab.hasTopConcepts -%}
                 {% if config.LOCAL_URLS -%}
                     <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab.id }}&uri={{ h.url_encode(tc[0]) }}">{{ tc[1] }}</a><br />
                 {% else -%}
@@ -53,11 +53,11 @@
             </td>
         </tr>
         {% endif -%}
-        {%  if vocab.concept_hierarchy is not none and vocab.concept_hierarchy|length > 0 -%}
+        {%  if vocab.conceptHierarchy is not none and vocab.conceptHierarchy|length > 0 -%}
         <tr>
             <th>Concept Hierarchy:</th>
             <td>
-                    {{ render_concept_hierarchy(vocab.concept_hierarchy)|safe }}
+                    {{ render_concept_hierarchy(vocab.conceptHierarchy)|safe }}
             </td>
         </tr>
         {% endif -%}

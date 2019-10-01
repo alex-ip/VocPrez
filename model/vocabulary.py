@@ -17,8 +17,8 @@ class Vocabulary:
             versionInfo,
             data_source,
             concept_scheme_uri,
-            hasTopConcept=None,
-            concept_hierarchy=None,
+            hasTopConcepts=None,
+            conceptHierarchy=None,
             accessURL=None,
             downloadURL=None,
             sparql_endpoint=None, # A single Source object may define multiple endpoints with different credentials
@@ -43,10 +43,10 @@ class Vocabulary:
         self.versionInfo = versionInfo
         self.data_source = data_source
         self.concept_scheme_uri = concept_scheme_uri
-        if hasTopConcept:
-            hasTopConcept.sort()
-        self.hasTopConcepts = hasTopConcept
-        self.conceptHierarchy = concept_hierarchy
+        if hasTopConcepts:
+            hasTopConcepts.sort()
+        self.hasTopConcepts = hasTopConcepts
+        self.conceptHierarchy = conceptHierarchy
         self.accessURL = accessURL
         self.downloadURL = downloadURL
         self.sparql_endpoint = sparql_endpoint

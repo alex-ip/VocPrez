@@ -339,9 +339,6 @@ WHERE {{
                               ] + build_hierarchy(bindings_list, concept, level)
             #print(level, hierarchy)
             return hierarchy
-        
-        
-        
                  
         sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -391,7 +388,7 @@ ORDER BY ?concept_preflabel'''.format(concept_scheme_uri=self.vocabulary.concept
         assert bindings_list is not None, 'SPARQL concept hierarchy query failed'
          
         hierarchy = build_hierarchy(bindings_list)
-        #print(hierarchy)
+        #print(str(hierarchy).encode('utf-8'))
  
         return Source.draw_concept_hierarchy(hierarchy, self.request, self.vocab_id)
 
@@ -625,6 +622,7 @@ ORDER BY ?prefLabel
             for top_concept in top_concepts:
                 top_concept_list.append((top_concept.get('top_concept').get('value'), top_concept.get('prefLabel').get('value')))
 
+        #print(top_concept_list)
         return top_concept_list
 
     @staticmethod
@@ -808,10 +806,10 @@ WHERE  {{
         '''
         if self._vocabulary is None:
             self._vocabulary = self.get_vocabulary()
-            if self._vocabulary.hasTopConcept is None:
-                self._vocabulary.hasTopConcept = self.get_top_concepts()
-            if self._vocabulary.concept_hierarchy is None:
-                self._vocabulary.concept_hierarchy = self.get_concept_hierarchy()
+            if self._vocabulary.hasTopConcepts is None:
+                self._vocabulary.hasTopConcepts = self.get_top_concepts()
+            if self._vocabulary.conceptHierarchy is None:
+                self._vocabulary.conceptHierarchy = self.get_concept_hierarchy()
             if self._vocabulary.source is None:
                 self._vocabulary.source = self
             
