@@ -806,12 +806,14 @@ WHERE  {{
         '''
         Property returning Vocabulary object with URI self.vocab_id
         '''
-        #TODO: Make sure that subclasses aren't calling self.get_top_concepts() and self.get_concept_hierarchy() twice
         if self._vocabulary is None:
             self._vocabulary = self.get_vocabulary()
-            self._vocabulary.hasTopConcept = self.get_top_concepts()
-            self._vocabulary.concept_hierarchy = self.get_concept_hierarchy()
-            self._vocabulary.source = self
+            if self._vocabulary.hasTopConcept is None:
+                self._vocabulary.hasTopConcept = self.get_top_concepts()
+            if self._vocabulary.concept_hierarchy is None:
+                self._vocabulary.concept_hierarchy = self.get_concept_hierarchy()
+            if self._vocabulary.source is None:
+                self._vocabulary.source = self
             
         return self._vocabulary
     

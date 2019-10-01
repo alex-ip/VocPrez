@@ -21,7 +21,7 @@ class Vocabulary:
             concept_hierarchy=None,
             accessURL=None,
             downloadURL=None,
-            sparql_endpoint=None,
+            sparql_endpoint=None, # A single Source object may define multiple endpoints with different credentials
             collection_uris=None,
             sparql_username=None,
             sparql_password=None
