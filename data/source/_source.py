@@ -711,88 +711,67 @@ ORDER BY ?prefLabel
         
         
         
-        sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX ldv: <http://purl.org/linked-data/version#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 
 CONSTRUCT {{ ?subject ?predicate ?object }}
 WHERE  {{ 
     {{ GRAPH ?graph {{
-        {{    # conceptScheme
+        {{    # conceptScheme as subject
             ?subject ?predicate ?object .
             ?subject a skos:ConceptScheme .
-            <{uri}> a skos:ConceptScheme .
+            FILTER (?subject = <{uri}>)
+        }}
+        union
+        {{    # conceptScheme as object
+            ?subject ?predicate ?object .
+            ?object a skos:ConceptScheme .
+            FILTER (?object = <{uri}>)
         }}
         union
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
-            {{
-                {{<{uri}> a skos:ConceptScheme .
-                ?subject skos:inScheme <{uri}> .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-                ?equivalentConceptScheme a skos:ConceptScheme .
-                ?subject skos:inScheme ?equivalentConceptScheme .}}
-            }}
+            ?subject skos:inScheme <{uri}> .
         }}
         union
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
-            {{
-                {{<{uri}> a skos:ConceptScheme .
-                ?object skos:inScheme <{uri}> .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-                ?equivalentConceptScheme a skos:ConceptScheme .
-                ?object skos:inScheme ?equivalentConceptScheme .}}
-            }}
+            ?object skos:inScheme <{uri}> .
         }}
     }} }}
     UNION
     {{
-        {{    # conceptScheme
+        {{    # conceptScheme as subject
             ?subject ?predicate ?object .
             ?subject a skos:ConceptScheme .
-            <{uri}> a skos:ConceptScheme .
+            FILTER (?subject = <{uri}>)
+        }}
+        union
+        {{    # conceptScheme as object
+            ?subject ?predicate ?object .
+            ?object a skos:ConceptScheme .
+            FILTER (?object = <{uri}>)
         }}
         union
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
-            {{
-                {{<{uri}> a skos:ConceptScheme .
-                ?subject skos:inScheme <{uri}> .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-                ?equivalentConceptScheme a skos:ConceptScheme .
-                ?subject skos:inScheme ?equivalentConceptScheme .}}
-            }}
+            ?subject skos:inScheme <{uri}> .
         }}
         union
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
-            {{
-                {{<{uri}> a skos:ConceptScheme .
-                ?object skos:inScheme <{uri}> .}}
-                union
-                {{<{uri}> a skos:ConceptScheme .
-                <{uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-                ?equivalentConceptScheme a skos:ConceptScheme .
-                ?object skos:inScheme ?equivalentConceptScheme .}}
-            }}
+            ?object skos:inScheme <{uri}> .
         }}
     }}
     FILTER(STRSTARTS(STR(?predicate), STR(rdfs:))
         || STRSTARTS(STR(?predicate), STR(skos:))
         || STRSTARTS(STR(?predicate), STR(dct:))
-        || STRSTARTS(STR(?predicate), STR(ldv:))
         || STRSTARTS(STR(?predicate), STR(owl:))
         )
-}}'''.format(uri=self.vocabulary.uri)
+}}
+'''.format(uri=self.vocabulary.uri)
         #print(sparql_query)
         self._graph = Source.get_graph(self.vocabulary.sparql_endpoint, sparql_query, sparql_username=self.vocabulary.sparql_username, sparql_password=self.vocabulary.sparql_password)
         cache_write(self._graph, cache_file_name)
