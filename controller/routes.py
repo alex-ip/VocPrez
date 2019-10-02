@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, request, render_template, Markup, g, redirect, url_for, send_file
+from flask import Blueprint, Response, request, render_template, Markup, g, redirect, url_for
 from model.vocabulary import VocabularyRenderer
 from model.concept import ConceptRenderer
 from model.collection import CollectionRenderer
@@ -11,6 +11,7 @@ from data.source.VOCBENCH import VbException
 import json
 from pyldapi import Renderer
 import controller.sparql_endpoint_functions
+from rdflib.namespace import SKOS
 import datetime
 import logging
 
@@ -231,7 +232,6 @@ def object():
     :return: A Flask Response object
     :rtype: :class:`flask.Response`
     """
-    #print(request.values)
     language = request.values.get('lang') or config.DEFAULT_LANGUAGE
     vocab_id = request.values.get('vocab_id')
     uri = request.values.get('uri')
@@ -264,14 +264,14 @@ def object():
         # TODO reuse object within if, rather than re-loading graph
         c = vocab_source.get_object_class()
 
-        if c == 'http://www.w3.org/2004/02/skos/core#Concept':
+        if c == str(SKOS.Concept):
             concept = vocab_source.get_concept()
             return ConceptRenderer(
                 request,
                 concept
             ).render()
             
-        elif c == 'http://www.w3.org/2004/02/skos/core#ConceptScheme':
+        elif c == str(SKOS.ConceptScheme):
             vocabulary = vocab_source.get_vocabulary()
 
             return VocabularyRenderer(
@@ -279,7 +279,7 @@ def object():
                 vocabulary
             ).render()
 
-        elif c == 'http://www.w3.org/2004/02/skos/core#Collection':
+        elif c == str(SKOS.Collection):
             collection = vocab_source.get_collection(uri)
 
             return CollectionRenderer(
