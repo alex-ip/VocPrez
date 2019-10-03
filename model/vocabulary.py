@@ -110,8 +110,8 @@ class VocabularyRenderer(Renderer):
         elif self.view == 'dcat':
             if self.format in Renderer.RDF_SERIALIZER_MAP:
                 return self._render_dcat_rdf()
-            # else:
-            #     return self._render_dcat_html()
+            else:
+                return self._render_dcat_html()
         elif self.view == 'skos':
             if self.format in Renderer.RDF_SERIALIZER_MAP:
                 return self._render_skos_rdf()
@@ -187,6 +187,23 @@ class VocabularyRenderer(Renderer):
         return Response(
             render_template(
                 'vocabulary.html',
+                **_template_context
+            ),
+            headers=self.headers
+        )
+
+    def _render_dcat_html(self):
+        _template_context = {
+            'uri': self.uri,
+            'vocab': self.vocab,
+            'navs': self.navs,
+            'title': 'Voc: ' + self.vocab.title,
+            'config': config
+        }
+
+        return Response(
+            render_template(
+                'vocabulary_dcat.html',
                 **_template_context
             ),
             headers=self.headers
