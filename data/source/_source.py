@@ -73,19 +73,11 @@ WHERE {{
         
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX ldv: <http://purl.org/linked-data/version#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?concept ?prefLabel ?d ?created ?modified
 WHERE {{
     {{ GRAPH ?graph {{
-            {{<{concept_scheme_uri}> a skos:ConceptScheme .
-            ?concept skos:inScheme <{concept_scheme_uri}> .}}
-        union
-        union
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .
-        <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-        ?equivalentConceptScheme a skos:ConceptScheme .
-        ?concept skos:inScheme ?equivalentConceptScheme .}}
+        <{concept_scheme_uri}> a skos:ConceptScheme .
+        ?concept skos:inScheme <{concept_scheme_uri}> .
         {{ ?concept skos:prefLabel ?prefLabel .
         FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "") 
         }}
@@ -97,18 +89,8 @@ WHERE {{
     }} }}
     UNION
     {{
-            {{<{concept_scheme_uri}> a skos:ConceptScheme .
-            ?concept skos:inScheme <{concept_scheme_uri}> .}}
-        union
-            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?concept skos:inScheme ?currentVersionConceptScheme .}}
-        union
-            {{<{concept_scheme_uri}> ldv:currentVersion ?currentVersionConceptScheme .
-            ?currentVersionConceptScheme owl:sameAs ?equivalentCurrentVersionConceptScheme .
-            ?concept skos:inScheme ?equivalentCurrentVersionConceptScheme .}}
-        union
-            {{<{concept_scheme_uri}> owl:sameAs ?equivalentConceptScheme .
-            ?concept skos:inScheme ?equivalentConceptScheme .}}
+        <{concept_scheme_uri}> a skos:ConceptScheme .
+        ?concept skos:inScheme <{concept_scheme_uri}> .
         {{ ?concept skos:prefLabel ?prefLabel .
         FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "") 
         }}
@@ -207,7 +189,7 @@ WHERE {{
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
 
-select *
+select distinct *
 
 WHERE {{
     {{ GRAPH ?graph {{
@@ -343,18 +325,11 @@ WHERE {{
         sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX ldv: <http://purl.org/linked-data/version#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT distinct ?concept ?concept_preflabel ?broader_concept
 WHERE {{
     {{ GRAPH ?graph {{
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .
-        ?concept skos:inScheme <{concept_scheme_uri}> .}}
-        union
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .
-        <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-        ?equivalentConceptScheme a skos:ConceptScheme .
-        ?concept skos:inScheme ?equivalentConceptScheme .}}
+        <{concept_scheme_uri}> a skos:ConceptScheme .
+        ?concept skos:inScheme <{concept_scheme_uri}> .
         ?concept skos:prefLabel ?concept_preflabel .
         OPTIONAL {{ ?concept skos:broader ?broader_concept .
             {{ ?broader_concept skos:inScheme <{concept_scheme_uri}> .}}
@@ -365,13 +340,8 @@ WHERE {{
     }} }}
     UNION
     {{
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .
-        ?concept skos:inScheme <{concept_scheme_uri}> .}}
-        union
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .
-        <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-        ?equivalentConceptScheme a skos:ConceptScheme .
-        ?concept skos:inScheme ?equivalentConceptScheme .}}
+        <{concept_scheme_uri}> a skos:ConceptScheme .
+        ?concept skos:inScheme <{concept_scheme_uri}> .
         ?concept skos:prefLabel ?concept_preflabel .
         OPTIONAL {{ ?concept skos:broader ?broader_concept .
             {{ ?broader_concept skos:inScheme <{concept_scheme_uri}> .}}
@@ -503,53 +473,25 @@ WHERE {{
         sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX ldv: <http://purl.org/linked-data/version#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?top_concept ?prefLabel
 WHERE {{
     {{ GRAPH ?graph {{
+        <{concept_scheme_uri}> a skos:ConceptScheme .
         {{
-            <{concept_scheme_uri}> a skos:ConceptScheme .
-            {{
-                {{<{concept_scheme_uri}> skos:hasTopConcept ?top_concept .}}
-                union
-                {{?top_concept skos:topConceptOf <{concept_scheme_uri}> .}}
-            }}
-        }}
-        union
-        {{
-            <{concept_scheme_uri}> a skos:ConceptScheme .
-            <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-            ?equivalentConceptScheme a skos:ConceptScheme .
-            {{
-                {{?equivalentConceptScheme skos:hasTopConcept ?top_concept .}}
-                union
-                {{?top_concept skos:topConceptOf ?equivalentConceptScheme .}}
-            }}
+            {{<{concept_scheme_uri}> skos:hasTopConcept ?top_concept .}}
+            union
+            {{?top_concept skos:topConceptOf <{concept_scheme_uri}> .}}
         }}
         ?top_concept skos:prefLabel ?prefLabel .
         FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "")
     }} }}
     UNION
     {{
+        <{concept_scheme_uri}> a skos:ConceptScheme .
         {{
-            <{concept_scheme_uri}> a skos:ConceptScheme .
-            {{
-                {{<{concept_scheme_uri}> skos:hasTopConcept ?top_concept .}}
-                union
-                {{?top_concept skos:topConceptOf <{concept_scheme_uri}> .}}
-            }}
-        }}
-        union
-        {{
-            <{concept_scheme_uri}> a skos:ConceptScheme .
-            <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-            ?equivalentConceptScheme a skos:ConceptScheme .
-            {{
-                {{?equivalentConceptScheme skos:hasTopConcept ?top_concept .}}
-                union
-                {{?top_concept skos:topConceptOf ?equivalentConceptScheme .}}
-            }}
+            {{<{concept_scheme_uri}> skos:hasTopConcept ?top_concept .}}
+            union
+            {{?top_concept skos:topConceptOf <{concept_scheme_uri}> .}}
         }}
         ?top_concept skos:prefLabel ?prefLabel .
         FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "")
@@ -558,7 +500,7 @@ WHERE {{
 ORDER BY ?prefLabel
 '''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri,
                                    language=self.language)
-        #print(sparql_query)
+        print(sparql_query)
         top_concepts = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password) or []
         
         top_concept_list = []
@@ -570,48 +512,22 @@ ORDER BY ?prefLabel
             sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX ldv: <http://purl.org/linked-data/version#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?top_concept ?prefLabel
 WHERE {{
     {{ GRAPH ?graph {{
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .}}
-        union
-        {{
-            <{concept_scheme_uri}> a skos:ConceptScheme .
-            <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-            ?equivalentConceptScheme a skos:ConceptScheme .
-        }}
-        {{ ?top_concept skos:inScheme <{concept_scheme_uri}> .}}
-        union
-        {{ ?top_concept skos:inScheme ?equivalentConceptScheme .}}
-        OPTIONAL {{ ?top_concept skos:broader ?broader_concept .
-            {{ ?broader_concept skos:inScheme <{concept_scheme_uri}> .}}
-            union
-            {{ ?broader_concept skos:inScheme ?equivalentConceptScheme .}}
-        }}
+        <{concept_scheme_uri}> a skos:ConceptScheme .
+        ?top_concept skos:inScheme <{concept_scheme_uri}> .
         ?top_concept skos:prefLabel ?prefLabel .
-        FILTER((broader_concept = "") && (lang(?prefLabel) = "{language}" || lang(?prefLabel) = ""))
+        FILTER NOT EXISTS {{ ?top_concept skos:broader ?broader_concept .}}
+        FILTER((lang(?prefLabel) = "{language}" || lang(?prefLabel) = ""))
     }} }}
     UNION
     {{
-        {{<{concept_scheme_uri}> a skos:ConceptScheme .}}
-        union
-        {{
-            <{concept_scheme_uri}> a skos:ConceptScheme .
-            <{concept_scheme_uri}> (ldv:currentVersion | owl:sameAs)+ ?equivalentConceptScheme .
-            ?equivalentConceptScheme a skos:ConceptScheme .
-        }}
-        {{ ?top_concept skos:inScheme <{concept_scheme_uri}> .}}
-        union
-        {{ ?top_concept skos:inScheme ?equivalentConceptScheme .}}
-        OPTIONAL {{ ?top_concept skos:broader ?broader_concept .
-            {{ ?broader_concept skos:inScheme <{concept_scheme_uri}> .}}
-            union
-            {{ ?broader_concept skos:inScheme ?equivalentConceptScheme .}}
-        }}
+        <{concept_scheme_uri}> a skos:ConceptScheme .
+        ?top_concept skos:inScheme <{concept_scheme_uri}> .
         ?top_concept skos:prefLabel ?prefLabel .
-        FILTER((broader_concept = "") && (lang(?prefLabel) = "{language}" || lang(?prefLabel) = ""))
+        FILTER NOT EXISTS {{ ?top_concept skos:broader ?broader_concept .}}
+        FILTER((lang(?prefLabel) = "{language}" || lang(?prefLabel) = ""))
     }}
 }}
 ORDER BY ?prefLabel
@@ -622,7 +538,6 @@ ORDER BY ?prefLabel
             for top_concept in top_concepts:
                 top_concept_list.append((top_concept.get('top_concept').get('value'), top_concept.get('prefLabel').get('value')))
 
-        #print(top_concept_list)
         return top_concept_list
 
     @staticmethod
