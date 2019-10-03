@@ -500,7 +500,7 @@ WHERE {{
 ORDER BY ?prefLabel
 '''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri,
                                    language=self.language)
-        print(sparql_query)
+        #print(sparql_query)
         top_concepts = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password) or []
         
         top_concept_list = []
@@ -590,7 +590,7 @@ ORDER BY ?prefLabel
                 assert response.status_code == 200, 'Response status code {} != 200'.format(response.status_code)
                 return response.text
             except Exception as e:
-                logging.warning('SPARQL query failed: {}'.format(e))
+                print('SPARQL query failed: {}'.format(e))
                 retries += 1
                 if retries <= config.MAX_RETRIES:
                     sleep(config.RETRY_SLEEP_SECONDS)
@@ -625,7 +625,7 @@ ORDER BY ?prefLabel
             return self._graph
         
         
-        
+        # N.B: skos:narrowerTransitive, skos:broaderTransitive and skos:narrower predicates excluded to reduce result size
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX dct: <http://purl.org/dc/terms/>
@@ -649,11 +649,15 @@ WHERE  {{
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
             ?subject skos:inScheme <{uri}> .
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'Transitive')))
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'narrower')))
         }}
         union
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
             ?object skos:inScheme <{uri}> .
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'Transitive')))
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'narrower')))
         }}
     }} }}
     UNION
@@ -673,11 +677,15 @@ WHERE  {{
         {{    # conceptScheme members as subjects
             ?subject ?predicate ?object .
             ?subject skos:inScheme <{uri}> .
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'Transitive')))
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'narrower')))
         }}
         union
         {{    # conceptScheme members as objects
             ?subject ?predicate ?object .
             ?object skos:inScheme <{uri}> .
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'Transitive')))
+            FILTER(!(STRSTARTS(STR(?predicate), STR(skos:)) && STRENDS(STR(?predicate), 'narrower')))
         }}
     }}
     FILTER(STRSTARTS(STR(?predicate), STR(rdfs:))
