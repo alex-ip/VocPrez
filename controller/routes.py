@@ -234,7 +234,6 @@ def object():
     """
     language = request.values.get('lang') or config.DEFAULT_LANGUAGE
     vocab_id = request.values.get('vocab_id')
-    uri = request.values.get('uri')
     _view = request.values.get('_view')
     _format = request.values.get('_format')
 
@@ -247,7 +246,7 @@ def object():
             mimetype='text/plain'
         )
 
-    if uri is None:
+    if request.values.get('uri') is None:
         return Response(
             'A Query String Argument \'uri\' must be supplied for this endpoint, '
             'indicating an object within a vocabulary',
@@ -280,14 +279,14 @@ def object():
             ).render()
 
         elif c == str(SKOS.Collection):
-            collection = vocab_source.get_collection(uri)
+            collection = vocab_source.get_collection()
 
             return CollectionRenderer(
                 request,
                 collection
             ).render()
         else:
-            return render_invalid_object_class_response(vocab_id, uri, c)
+            return render_invalid_object_class_response(vocab_id, request.values.get('uri'), c)
     except VbException as e:
         return render_vb_exception_response(e)
 

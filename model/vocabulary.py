@@ -4,6 +4,7 @@ from rdflib import Graph, URIRef, Literal, XSD, RDF
 from rdflib.namespace import DCTERMS, OWL, SKOS, Namespace, NamespaceManager
 import _config as config
 
+
 class Vocabulary:
     def __init__(
             self,
@@ -22,7 +23,7 @@ class Vocabulary:
             accessURL=None,
             downloadURL=None,
             sparql_endpoint=None,
-            collection_uris=None,
+            collections=None,
             sparql_username=None,
             sparql_password=None
     ):
@@ -50,9 +51,11 @@ class Vocabulary:
         self.accessURL = accessURL
         self.downloadURL = downloadURL
         self.sparql_endpoint = sparql_endpoint
-        self.collection_uris = collection_uris
+        self.collections = collections
         self.sparql_username = sparql_username
         self.sparql_password = sparql_password
+        print('vocab')
+        print(str(self.id))
 
 
 class VocabularyRenderer(Renderer):
@@ -60,6 +63,7 @@ class VocabularyRenderer(Renderer):
         self.views = self._add_dcat_view()
         self.views.update(self._add_skos_view())
         self.navs = [
+            # TODO: enable this link after the routes method
             # '<a href="' + url_for('routes.vocabulary', vocab_id=vocab.id) + '/collection/">Collections</a> |',
             '<a href="' + url_for('routes.vocabulary', vocab_id=vocab.id) + '/concept/">Concepts</a> |'
         ]
@@ -71,7 +75,7 @@ class VocabularyRenderer(Renderer):
             request,
             self.vocab.uri,
             self.views,
-            'dcat'
+            'skos'
         )
 
     def _add_dcat_view(self):
@@ -108,15 +112,13 @@ class VocabularyRenderer(Renderer):
         elif self.view == 'dcat':
             if self.format in Renderer.RDF_SERIALIZER_MAP:
                 return self._render_dcat_rdf()
-            else:
-                return self._render_dcat_html()
+            # else:
+            #     return self._render_dcat_html()
         elif self.view == 'skos':
             if self.format in Renderer.RDF_SERIALIZER_MAP:
                 return self._render_skos_rdf()
-            #===================================================================
-            # else:
-            #     return self._render_skos_html()
-            #===================================================================
+            else:
+                return self._render_skos_html()
 
     def _render_dcat_rdf(self):
         # get vocab RDF
@@ -175,7 +177,7 @@ class VocabularyRenderer(Renderer):
         else:
             return Response(g.serialize(format=self.format), mimetype=self.format)
 
-    def _render_dcat_html(self):
+    def _render_skos_html(self):
         _template_context = {
             'uri': self.uri,
             'vocab': self.vocab,

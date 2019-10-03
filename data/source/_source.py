@@ -24,9 +24,9 @@ else:
 class Source:
     VOC_TYPES = [
         'http://purl.org/vocommons/voaf#Vocabulary',
-        'http://www.w3.org/2004/02/skos/core#ConceptScheme',
-        'http://www.w3.org/2004/02/skos/core#ConceptCollection',
-        'http://www.w3.org/2004/02/skos/core#Concept',
+        SKOS.ConceptScheme,
+        SKOS.Collection,
+        SKOS.Concept,
     ]
 
     def __init__(self, vocab_id, request, language=None):
@@ -125,6 +125,9 @@ ORDER BY ?pl'''.format(concept_scheme_uri=vocab.concept_scheme_uri,
         """
         vocab = g.VOCABS[self.vocab_id]
 
+        vocab.collections = self.list_collections()
+        print('vocab.collection')
+        print(vocab.collections)
         vocab.hasTopConcept = self.get_top_concepts()
         vocab.concept_hierarchy = self.get_concept_hierarchy()
         vocab.source = self
@@ -363,7 +366,6 @@ WHERE {{
 }}'''.format(uri=url_decode(self.request.values.get('uri')))
         clses = Source.sparql_query(vocab.sparql_endpoint, q, vocab.sparql_username, vocab.sparql_password)
         assert clses is not None, 'SPARQL class query failed'
-        #print(clses)
         # look for classes we understand (SKOS)
         for cls in clses:
             if cls['c']['value'] in Source.VOC_TYPES:

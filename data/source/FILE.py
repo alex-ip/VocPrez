@@ -1,13 +1,14 @@
 from data.source._source import Source
 from os.path import join
 import _config as config
-from rdflib import Graph, URIRef, RDF
-from rdflib.namespace import SKOS
+from rdflib import Graph, URIRef, RDF, RDFS
+from rdflib.namespace import DCTERMS, SKOS
 import os
 import dateutil.parser
 from collections import OrderedDict
 import pickle
 from model.concept import Concept
+from model.collection import Collection
 from flask import g
 import logging
 from model.vocabulary import Vocabulary
@@ -101,7 +102,8 @@ class FILE(Source):
                             dateutil.parser.parse(str(cs[4])) if cs[4] is not None else None,
                             str(cs[5]) if cs[5] is not None else None,  # versionInfo
                             config.VocabSource.FILE,
-                            cs[0]
+                            cs[0],
+                            collections=FILE.list_collections(gr)
                         )
         g.VOCABS = {**g.VOCABS, **file_vocabs}
 
@@ -149,15 +151,17 @@ class FILE(Source):
         #         g.VOCABS[vocab_id]['version'] = version
 
     def list_collections(self):
-        q = '''
-            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            SELECT *
-            WHERE {
-              ?c a skos:Concept .
-              ?c rdfs:label ?l .
-            }'''
-        return [(x['c'], x['l']) for x in self.g.query(q)]
+        collections_uris = []
+        collections = []
+        for c in self.gr.subjects(predicate=RDF.type, object=SKOS.Collection):
+            collections_uris.append(c)
+        for collections_uri in collections_uris:
+            for p, o in self.gr.predicate_objects(subject=collections_uri):
+                if p in [SKOS.prefLabel, DCTERMS.title, RDFS.label]:
+                    collections.append((
+                        str(collections_uri), str(o)
+                    ))
+        return sorted(collections, key=lambda tup: tup[1])  # return sorted by prefLabel
 
     def list_concepts(self):
         vocabs = []
@@ -210,9 +214,37 @@ class FILE(Source):
 
         return vocabs
 
-    # stub
-    def get_collection(self, uri):
-        pass
+    def get_collection(self):
+        collection_uri = self.request.values.get('uri')
+        prefLabel = None
+        definition = None
+        members_uris = []
+        members = []
+        source = None
+        for p, o in self.gr.predicate_objects(subject=URIRef(collection_uri)):
+            if p in [SKOS.prefLabel, DCTERMS.title, RDFS.label]:
+                prefLabel = str(o)
+            elif p in [SKOS.definition, DCTERMS.description, RDFS.comment]:
+                definition = str(o)
+            elif p == SKOS.member:
+                members_uris.append(o)
+            elif p == DCTERMS.source:
+                source = str(o)
+
+        for member_uri in members_uris:
+            for o in self.gr.objects(subject=member_uri, predicate=SKOS.prefLabel):
+                members.append({
+                    'uri': str(member_uri),
+                    'prefLabel': str(o)
+                })
+
+        return Collection(
+            vocab_id=self.vocab_id,
+            prefLabel=prefLabel,
+            definition=definition,
+            members=members,
+            source=source,
+        )
 
     def get_concept(self):
         concept_uri = self.request.values.get('uri')
@@ -279,7 +311,6 @@ class FILE(Source):
                     related_object = str(r[1])
                     related_objectLabel = None
                 else:
-                    print('uri')
                     related_object = str(r[1])
                     related_objectLabel = (str(r[3]) if r[3] is not None else h.make_title(str(r[1])))
 
@@ -483,26 +514,35 @@ class FILE(Source):
 
     def get_object_class(self):
         uri = h.url_decode(self.request.values.get('uri'))
-        for s, p, o in self.gr.triples((URIRef(uri), RDF.type, SKOS.Concept)):
+        for o in self.gr.objects(subject=URIRef(uri), predicate=RDF.type):
             return str(o)
 
     @staticmethod
     def load_pickle_graph(vocab_id):
         pickled_file_path = join(config.APP_DIR, 'data', 'vocab_files', vocab_id + '.p')
-        print(pickled_file_path)
+        if not os.path.isfile(pickled_file_path):  # no pickled file so re-make it
+            if os.path.isfile(pickled_file_path.replace('.p', '.ttl')):
+                gg = Graph().parse(pickled_file_path.replace('.p', '.ttl'), format='turtle')
+            elif os.path.isfile(pickled_file_path.replace('.p', '.rdf')):
+                gg = Graph().parse(pickled_file_path.replace('.p', '.rdf'), format='turtle')
+            else:
+                return None
+
+            FILE.pickle_to_file(vocab_id, gg)
 
         try:
             with open(pickled_file_path, 'rb') as f:
                 gr = pickle.load(f)
                 f.close()
                 return gr
-        except Exception:
+        except Exception as e:
+            print('EXCEPTION: ' + str(e))
             return None
 
     @staticmethod
     def pickle_to_file(vocab_id, g):
         logging.debug('Pickling file: {}'.format(vocab_id))
-        path = os.path.join(config.APP_DIR, 'vocab_files', vocab_id)
+        path = os.path.join(config.APP_DIR, 'data', 'vocab_files', vocab_id)
         # TODO: Check if file_name already has extension
         with open(path + '.p', 'wb') as f:
             pickle.dump(g, f)

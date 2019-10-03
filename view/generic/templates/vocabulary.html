@@ -39,6 +39,16 @@
             </td>
         </tr>
         {% endif -%}
+        {%  if vocab.collections is not none and vocab.collections|length > 0  -%}
+        <tr>
+            <th>Collections:</th>
+            <td>
+                {% for collection in vocab.collections %}
+                    <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab.id }}&uri={{ h.url_encode(collection[0]) }}">{{ collection[1] }}</a><br />
+                {% endfor %}
+            </td>
+        </tr>
+        {% endif -%}
         {%  if vocab.hasTopConcept is not none  -%}
         <tr>
             <th>Top Concepts:</th>

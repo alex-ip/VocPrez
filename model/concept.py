@@ -1,7 +1,7 @@
 from pyldapi import Renderer, View
 from flask import Response, render_template, g
 import _config as config
-from rdflib import Graph, RDF, Literal, URIRef, XSD
+from rdflib import Graph, URIRef
 from rdflib.namespace import SKOS, DCTERMS, NamespaceManager
 
 

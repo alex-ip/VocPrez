@@ -1,23 +1,22 @@
 from pyldapi import Renderer, View
-from flask import Response, render_template
+from flask import Response, render_template, g
 from rdflib import Graph
 
 
 class Collection:
     def __init__(
             self,
-            vocab,
-            uri,
-            label,
-            comment,
+            vocab_id,
+            prefLabel,
+            definition,
             members,
             source,
     ):
-        self.vocab = vocab
-        self.uri = uri
-        self.label = label
-        self.comment = comment
+        self.vocab_id = vocab_id
+        self.prefLabel = prefLabel
+        self.definition = definition
         self.members = members
+        self.source = source
 
 
 class CollectionRenderer(Renderer):
@@ -29,7 +28,7 @@ class CollectionRenderer(Renderer):
 
         super().__init__(
             request,
-            self.collection.uri,
+            request.values.get('uri'),
             self.views,
             'skos'
         )
@@ -69,8 +68,11 @@ class CollectionRenderer(Renderer):
 
     def _render_skos_html(self):
         _template_context = {
-            'uri': self.uri,
+            'vocab_id': self.request.values.get('vocab_id'),
+            'vocab_title': g.VOCABS[self.request.values.get('vocab_id')].title,
+            'uri': self.request.values.get('uri'),
             'collection': self.collection,
+            'title': 'Collection: ' + self.collection.prefLabel,
             'navs': self.navs
         }
 

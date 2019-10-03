@@ -146,7 +146,7 @@ def cache_write(cache_object, cache_file_name):
             os.remove(cache_file_path)
         else:
             logging.debug('Retaining recent cache file {}'.format(os.path.abspath(cache_file_path)))
-            return # Don't do anything - cache file is too young to die
+            return  # Don't do anything - cache file is too young to die
 
     try:
         os.makedirs(config.VOCAB_CACHE_DIR)
@@ -157,7 +157,7 @@ def cache_write(cache_object, cache_file_name):
         else:
             raise   
         
-    if cache_object: # Don't write empty file
+    if cache_object:  # Don't write empty file
         with open(cache_file_path, 'wb') as cache_file:
             pickle.dump(cache_object, cache_file)
             cache_file.close()
