@@ -70,36 +70,37 @@ WHERE {{
 
     def list_concepts(self):
         vocab = g.VOCABS[self.vocab_id]
-        q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX dct: <http://purl.org/dc/terms/>
-SELECT DISTINCT *
-WHERE {{
-    {{ GRAPH ?g {{
-        ?c skos:inScheme <{concept_scheme_uri}> . 
-        {{ ?c skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
-        }}
-        OPTIONAL {{ ?c skos:definition ?d .
-        FILTER(lang(?d) = "{language}" || lang(?d) = "") 
-        }}
-        OPTIONAL {{ ?c dct:created ?created . }}
-        OPTIONAL {{ ?c dct:modified ?modified . }}
-    }} }}
-    UNION
-    {{
-        ?c skos:inScheme <{concept_scheme_uri}> . 
-        {{ ?c skos:prefLabel ?pl .
-        FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
-        }}
-        OPTIONAL {{ ?c skos:definition ?d .
-        FILTER(lang(?d) = "{language}" || lang(?d) = "") 
-        }}
-        OPTIONAL {{ ?c dct:created ?created . }}
-        OPTIONAL {{ ?c dct:modified ?modified . }}
-    }}
-}}
-ORDER BY ?pl'''.format(concept_scheme_uri=vocab.concept_scheme_uri, 
-                        language=self.language)
+        q = '''
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX dct: <http://purl.org/dc/terms/>
+            SELECT DISTINCT *
+            WHERE {{
+                {{ GRAPH ?g {{
+                    ?c skos:inScheme <{concept_scheme_uri}> . 
+                    {{ ?c skos:prefLabel ?pl .
+                    FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
+                    }}
+                    OPTIONAL {{ ?c skos:definition ?d .
+                    FILTER(lang(?d) = "{language}" || lang(?d) = "") 
+                    }}
+                    OPTIONAL {{ ?c dct:created ?created . }}
+                    OPTIONAL {{ ?c dct:modified ?modified . }}
+                }} }}
+                UNION
+                {{
+                    ?c skos:inScheme <{concept_scheme_uri}> . 
+                    {{ ?c skos:prefLabel ?pl .
+                    FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
+                    }}
+                    OPTIONAL {{ ?c skos:definition ?d .
+                    FILTER(lang(?d) = "{language}" || lang(?d) = "") 
+                    }}
+                    OPTIONAL {{ ?c dct:created ?created . }}
+                    OPTIONAL {{ ?c dct:modified ?modified . }}
+                }}
+            }}
+            ORDER BY ?pl
+            '''.format(concept_scheme_uri=vocab.concept_scheme_uri, language=self.language)
         concepts = Source.sparql_query(vocab.sparql_endpoint, q, vocab.sparql_username, vocab.sparql_password)
 
         concept_items = []
@@ -126,8 +127,6 @@ ORDER BY ?pl'''.format(concept_scheme_uri=vocab.concept_scheme_uri,
         vocab = g.VOCABS[self.vocab_id]
 
         vocab.collections = self.list_collections()
-        print('vocab.collection')
-        print(vocab.collections)
         vocab.hasTopConcept = self.get_top_concepts()
         vocab.concept_hierarchy = self.get_concept_hierarchy()
         vocab.source = self
@@ -212,7 +211,7 @@ WHERE {{
             FILTER(?prefLabel = skos:prefLabel || lang(?objectLabel) = "{language}" || lang(?objectLabel) = "") # Don't filter prefLabel language
         }}
     }}
-}}""".format(concept_uri=concept_uri, 
+}}""".format(concept_uri=concept_uri,
              language=self.language)   
 
         result = Source.sparql_query(vocab.sparql_endpoint, q, vocab.sparql_username, vocab.sparql_password)
@@ -283,9 +282,9 @@ WHERE {{
         )
 
     def get_concept_hierarchy(self):
-        '''
+        """
         Function to draw concept hierarchy for vocabulary
-        '''
+        """
         def build_hierarchy(bindings_list, broader_concept=None, level=0):
             '''
             Recursive helper function to build hierarchy list from a bindings list
@@ -564,9 +563,9 @@ ORDER BY ?pl
 
     @staticmethod
     def submit_sparql_query(endpoint, q, sparql_username=None, sparql_password=None, accept_format='json'):
-        '''
+        """
         Function to submit a sparql query and return the textual response
-        '''
+        """
         #logging.debug('sparql_query = {}'.format(sparql_query))
         accept_format = {'json': 'application/json',
                          'xml': 'application/rdf+xml',
@@ -606,9 +605,9 @@ ORDER BY ?pl
 
     @staticmethod
     def get_graph(endpoint, q, sparql_username=None, sparql_password=None):
-        '''
+        """
         Function to return an rdflib Graph object containing the results of a query
-        '''
+        """
         result_graph = Graph()
         response = Source.submit_sparql_query(endpoint, q, sparql_username=sparql_username, sparql_password=sparql_password, accept_format='xml')
         #print(response.encode('utf-8'))

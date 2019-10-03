@@ -168,15 +168,21 @@ def vocabulary(vocab_id):
 
 
 @routes.route('/vocabulary/<vocab_id>/concept/')
-def vocabulary_list(vocab_id):
+def concepts(vocab_id):
     language = request.values.get('lang') or config.DEFAULT_LANGUAGE
 
     if vocab_id not in g.VOCABS.keys():
         return render_invalid_vocab_id_response()
     
-    vocab_source = Source(vocab_id, request, language)
-    concepts = vocab_source.list_concepts()
-    concepts.sort(key=lambda x: x['title'])
+    # get vocab details using appropriate source handler
+    if g.VOCABS.get(vocab_id).data_source in ['RVA', 'SPARQL']:
+        try:
+            concepts = Source(vocab_id, request, language).list_concepts()
+        except VbException as e:
+            return render_vb_exception_response(e)
+    elif g.VOCABS.get(vocab_id).data_source == 'FILE':
+        concepts = FILE(vocab_id, request).list_concepts()
+
     total = len(concepts)
 
     # Search

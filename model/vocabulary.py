@@ -54,8 +54,6 @@ class Vocabulary:
         self.collections = collections
         self.sparql_username = sparql_username
         self.sparql_password = sparql_password
-        print('vocab')
-        print(str(self.id))
 
 
 class VocabularyRenderer(Renderer):

@@ -102,8 +102,7 @@ class FILE(Source):
                             dateutil.parser.parse(str(cs[4])) if cs[4] is not None else None,
                             str(cs[5]) if cs[5] is not None else None,  # versionInfo
                             config.VocabSource.FILE,
-                            cs[0],
-                            collections=FILE.list_collections(gr)
+                            cs[0]
                         )
         g.VOCABS = {**g.VOCABS, **file_vocabs}
 
@@ -171,48 +170,50 @@ class FILE(Source):
         #         'uri': str(s),
         #         'title': label
         #     })
-        result = self.g.query("""
+        vocab = g.VOCABS[self.vocab_id]
+        q = '''
             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
             PREFIX dct: <http://purl.org/dc/terms/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            SELECT * 
+            SELECT DISTINCT 
+                ?c          # 0
+                ?pl         # 1
+                ?d          # 2
+                ?created    # 3
+                ?modified   # 4
             WHERE {{
-                {{
-                    ?s a skos:Concept .
-                    ?s skos:prefLabel ?title .                    
+                ?c skos:inScheme <{concept_scheme_uri}> . 
+                {{ 
+                    ?c skos:prefLabel ?pl .
+                    FILTER(lang(?pl) = "{language}" || lang(?pl) = "") 
                 }}
-                UNION
-                {{
-                    ?s a skos:Concept .
-                    ?s dct:title ?title . 
-                    MINUS { ?s skos:prefLabel ?prefLabel }
+                OPTIONAL {{ 
+                    ?c skos:definition ?d .
+                    FILTER(lang(?d) = "{language}" || lang(?d) = "") 
                 }}
-                UNION
-                {{
-                    ?s a skos:Concept .
-                    ?s rdfs:label ?title . 
-                    MINUS { ?s skos:prefLabel ?prefLabel }
-                    MINUS { ?s dct:title ?prefLabel }
+                OPTIONAL {{ 
+                    ?c dct:created ?created . 
                 }}
-                OPTIONAL {{
-                    ?s dct:created ?created .
-                }}
-                OPTIONAL {{
-                    ?s dct:modified ?modified .
+                OPTIONAL {{ 
+                    ?c dct:modified ?modified . 
                 }}
             }}
-            """)
+            ORDER BY ?pl
+            '''.format(concept_scheme_uri=vocab.concept_scheme_uri, language=self.language)
 
-        for row in result:
-            vocabs.append({
-                'vocab_id': self.vocab_id,
-                'uri': str(row['s']),
-                'title': row['title'] if row['title'] is not None else ' '.join(str(row['s']).split('#')[-1].split('/')[-1].split('_')),
-                'created': row['created'][:10] if row['created'] is not None else None,
-                'modified': row['modified'][:10] if row['modified'] is not None else None,
-            })
+        concepts = []
+        for concept in self.gr.query(q):
+            metadata = {
+                'key': self.vocab_id,
+                'uri': concept[0],
+                'title': concept[1],
+                'definition': concept[2] if concept[2] else None,
+                'created': dateutil.parser.parse(concept[3]) if concept[3] else None,
+                'modified': dateutil.parser.parse(concept[4]) if concept[4] else None
+            }
 
-        return vocabs
+            concepts.append(metadata)
+
+        return concepts
 
     def get_collection(self):
         collection_uri = self.request.values.get('uri')
