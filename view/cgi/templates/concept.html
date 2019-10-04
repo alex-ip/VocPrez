@@ -11,14 +11,14 @@
     'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
     'http://purl.org/dc/terms/source',
     'http://purl.org/dc/terms/contributor',
-    'http://www.w3.org/2004/02/skos/core#exactMatch',
-    'http://www.w3.org/2004/02/skos/core#closeMatch',
-    'http://www.w3.org/2004/02/skos/core#broadMatch',
-    'http://www.w3.org/2004/02/skos/core#narrowMatch',
     'http://www.w3.org/2004/02/skos/core#broader',
     'http://www.w3.org/2004/02/skos/core#broaderTransitive',
     'http://www.w3.org/2004/02/skos/core#narrower',
     'http://www.w3.org/2004/02/skos/core#narrowerTransitive',
+    'http://www.w3.org/2004/02/skos/core#exactMatch',
+    'http://www.w3.org/2004/02/skos/core#closeMatch',
+    'http://www.w3.org/2004/02/skos/core#broadMatch',
+    'http://www.w3.org/2004/02/skos/core#narrowMatch',
     ]         
 %}
 
@@ -37,7 +37,7 @@
             		{% if config.LOCAL_URLS -%}
 	                <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(concept_uri) }}">{{ concept_label }}</a><br>
 	            	{% else -%}
-	                <a href="{{ concept_uri }}">{{ concept_label }}</a><br>
+	                <a href="{{ concept_uri }}">{{ concept_label }} {% if relationship.endswith('Match') -%}({{ concept_uri }}){% endif -%}</a><br>
 	            	{% endif -%}
 	            {% else -%}
 	                {{ concept_uri }}<br>

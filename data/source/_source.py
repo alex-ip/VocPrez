@@ -188,30 +188,55 @@ WHERE {{
         sparql_query = """PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX rdfsn: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
-select distinct *
+select distinct ?predicate ?object ?predicateLabel ?objectLabel
 
 WHERE {{
-    {{ GRAPH ?graph {{
-        <{concept_uri}> ?predicate ?object .
-        optional {{GRAPH ?predicateGraph {{?predicate rdfs:label ?predicateLabel .}} 
-            FILTER(lang(?predicateLabel) = "{language}" || lang(?predicateLabel) = "")
-            }}
-        optional {{?object (skos:prefLabel | rdfs:label) ?objectLabel .
-            FILTER(?predicate = skos:prefLabel || lang(?objectLabel) = "{language}" || lang(?objectLabel) = "") 
-        }}
-    }} }}
-    UNION
     {{
-        <{concept_uri}> ?predicate ?object .
-        optional {{GRAPH ?predicateGraph {{?predicate rdfs:label ?predicateLabel .}} 
+        {{
+            {{ GRAPH ?graph
+                {{ <{concept_uri}> ?predicate ?object . }}
+            }} 
+            UNION
+            {{ GRAPH ?linksetGraph 
+                {{ ?statement a rdfsn:Statement .
+                ?statement rdfsn:subject <{concept_uri}> .
+                ?statement rdfsn:predicate ?predicate .
+                ?statement rdfsn:object ?object .
+                }}
+            }} 
+        }}   
+        optional {{ GRAPH ?predicateGraph {{?predicate rdfs:label ?predicateLabel .
             FILTER(lang(?predicateLabel) = "{language}" || lang(?predicateLabel) = "")
             }}
-        optional {{?object (skos:prefLabel | rdfs:label) ?objectLabel .
-            FILTER(?predicate = skos:prefLabel || lang(?objectLabel) = "{language}" || lang(?objectLabel) = "")
+        }}
+        optional {{ GRAPH ?objectGraph {{?object (skos:prefLabel | rdfs:label) ?objectLabel .
+            FILTER(lang(?objectLabel) = "{language}" || lang(?objectLabel) = "")
+            }}
         }}
     }}
-}}""".format(concept_uri=concept_uri, 
+    UNION
+    {{
+        {{
+            {{ <{concept_uri}> ?predicate ?object . }}
+            UNION
+            {{ ?statement a rdfsn:Statement .
+                ?statement rdfsn:subject <{concept_uri}> .
+                ?statement rdfsn:predicate ?predicate .
+                ?statement rdfsn:object ?object .
+            }} 
+        }}   
+        optional {{?predicate rdfs:label ?predicateLabel . 
+            FILTER(lang(?predicateLabel) = "{language}" || lang(?predicateLabel) = "")
+        }}
+        optional {{?object (skos:prefLabel | rdfs:label) ?objectLabel . 
+            FILTER(lang(?objectLabel) = "{language}" || lang(?objectLabel) = "")
+        }}
+    }}
+}}
+ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
+""".format(concept_uri=concept_uri, 
              language=self.language)   
         #print(sparql_query)
         result = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
