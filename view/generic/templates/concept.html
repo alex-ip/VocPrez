@@ -11,7 +11,7 @@
     'http://purl.org/dc/terms/source',
     'http://purl.org/dc/terms/contributor',
     'http://www.w3.org/2004/02/skos/core#broader',
-    'http://www.w3.org/2004/02/skos/core#narrower'
+    'http://www.w3.org/2004/02/skos/core#narrower',
     'http://www.w3.org/2004/02/skos/core#exactMatch',
     'http://www.w3.org/2004/02/skos/core#closeMatch',
     'http://www.w3.org/2004/02/skos/core#broadMatch',
@@ -32,7 +32,7 @@
             {% for concept_uri, concept_label in concept.related_objects[relationship]['objects'].items() -%}
 	            {% if concept_uri and concept_label -%}
             		{% if config.LOCAL_URLS -%}
-	                <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(concept_uri) }}">{{ concept_label }}</a><br>
+	                <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(concept_uri) }}">{{ concept_label }} {% if relationship.endswith('Match') -%}({{ concept_uri }}){% endif -%}</a><br>
 	            	{% else -%}
 	                <a href="{{ concept_uri }}">{{ concept_label }} {% if relationship.endswith('Match') -%}({{ concept_uri }}){% endif -%}</a><br>
 	            	{% endif -%}
