@@ -222,7 +222,7 @@ ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
         #print(sparql_query)
         result = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
         
-        assert result, 'Unable to query concepts for {}'.format(self.request.values.get('uri'))
+        assert result, 'Unable to query concept {}'.format(concept_uri)
         
         #print(str(result).encode('utf-8'))
 

@@ -42,30 +42,32 @@ class SPARQL(Source):
         # Interpret each CS as a Vocab
         q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX dct: <http://purl.org/dc/terms/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
-SELECT * WHERE {{
+SELECT DISTINCT * WHERE {{
     {{ GRAPH ?g {{
         ?cs a skos:ConceptScheme .
-        OPTIONAL {{ ?cs skos:prefLabel ?title .
+        OPTIONAL {{ ?cs (skos:prefLabel | dct:title) ?title .
             FILTER(lang(?title) = "{language}" || lang(?title) = "") }}
-        OPTIONAL {{ ?cs dcterms:created ?created }}
-        OPTIONAL {{ ?cs dcterms:issued ?issued }}
-        OPTIONAL {{ ?cs dcterms:modified ?modified }}
+        OPTIONAL {{ ?cs dct:creator ?creator }}
+        OPTIONAL {{ ?cs dct:created ?created }}
+        OPTIONAL {{ ?cs (dct:issued | dct:date) ?issued }}
+        OPTIONAL {{ ?cs dct:modified ?modified }}
         OPTIONAL {{ ?cs owl:versionInfo ?version }}
-        OPTIONAL {{ ?cs skos:definition ?description .
+        OPTIONAL {{ ?cs (skos:definition | dct:description) ?description .
             FILTER(lang(?description) = "{language}" || lang(?description) = "") }}
     }} }}
     UNION
     {{
         ?cs a skos:ConceptScheme .
-        OPTIONAL {{ ?cs skos:prefLabel ?title .
+        OPTIONAL {{ ?cs (skos:prefLabel | dct:title) ?title .
             FILTER(lang(?title) = "{language}" || lang(?title) = "") }}
-        OPTIONAL {{ ?cs dcterms:created ?created }}
-        OPTIONAL {{ ?cs dcterms:issued ?issued }}
-        OPTIONAL {{ ?cs dcterms:modified ?modified }}
+        OPTIONAL {{ ?cs dct:creator ?creator }}
+        OPTIONAL {{ ?cs dct:created ?created }}
+        OPTIONAL {{ ?cs dct:issued ?issued }}
+        OPTIONAL {{ ?cs dct:modified ?modified }}
         OPTIONAL {{ ?cs owl:versionInfo ?version }}
-        OPTIONAL {{ ?cs skos:definition ?description .
+        OPTIONAL {{ ?cs (skos:definition | dct:description) ?description .
             FILTER(lang(?description) = "{language}" || lang(?description) = "") }}
     }}
 }} 
@@ -101,7 +103,7 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
                 cs['cs']['value'].replace('/conceptScheme', ''),
                 cs['title'].get('value') or vocab_id if cs.get('title') else vocab_id, # Need string value for sorting, not None
                 cs['description'].get('value') if cs.get('description') is not None else None,
-                None,  # none of these SPARQL vocabs have creator info yet # TODO: add creator info to GSQ vocabs
+                cs['creator'].get('value') or None if cs.get('creator') else None, # Need string value for sorting, not None
                 dateutil.parser.parse(cs.get('created').get('value')) if cs.get('created') is not None else None,
                 # dct:issued not in Vocabulary
                 # dateutil.parser.parse(cs.get('issued').get('value')) if cs.get('issued') is not None else None,
