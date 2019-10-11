@@ -9,6 +9,7 @@ import logging
 import errno
 import _config as config
 from bs4 import BeautifulSoup
+from flask import g
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -163,3 +164,29 @@ def cache_write(cache_object, cache_file_name):
     else:
         logging.debug('Empty object ignored')
          
+def get_vocab_id_from_uri(concept_uri):
+    '''
+    Helper function to find the ID of a known vocab from a concept URI. Returns None if no match found.
+    '''
+    candidate_vocabs = {vocab_id: vocab for vocab_id, vocab in g.VOCABS.items()
+                        if vocab.uri in concept_uri}
+    
+    # Deal with case where vocab URI has same root as concepts, e.g. 'https://data.naa.gov.au/def/agift/AGIFT'
+    if not candidate_vocabs:
+        candidate_vocabs = {vocab_id: vocab for vocab_id, vocab in g.VOCABS.items()
+                            if os.path.dirname(vocab.uri) in concept_uri}
+    
+    matched_vocab_id = None
+    
+    longest_vocab_uri_length = 0
+    for vocab_id, vocab in candidate_vocabs.items():
+        if len(vocab.uri) > longest_vocab_uri_length:
+            matched_vocab_id = vocab_id
+            longest_vocab_uri_length = len(vocab.uri)
+    
+    return matched_vocab_id
+        
+    
+    
+    
+    

@@ -33,7 +33,7 @@
             {% for concept_uri, concept_label in concept.related_objects[relationship]['objects'].items() -%}
 	            {% if concept_uri and concept_label -%}
             		{% if config.LOCAL_URLS -%}
-	                <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(concept_uri) }}">{{ concept_label }} {% if relationship.endswith('Match') -%}({{ concept_uri }}){% endif -%}</a><br>
+	                <a href="{{ url_for('routes.object') }}?vocab_id={% if relationship.endswith('Match') -%}{{ h.get_vocab_id_from_uri(concept_uri) }}{% else -%}{{ vocab_id }}{% endif -%}&uri={{ h.url_encode(concept_uri) }}">{{ concept_label }} {% if relationship.endswith('Match') -%}({{ concept_uri }}){% endif -%}</a><br>
 	            	{% else -%}
 	                <a href="{{ concept_uri }}">{{ concept_label }} {% if relationship.endswith('Match') -%}({{ concept_uri }}){% endif -%}</a><br>
 	            	{% endif -%}

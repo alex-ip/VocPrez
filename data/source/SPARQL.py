@@ -5,6 +5,7 @@ from data.source._source import Source
 from model.vocabulary import Vocabulary
 import _config as config
 import re
+import os
 
 if hasattr(config, 'DEFAULT_LANGUAGE:'):
     DEFAULT_LANGUAGE = config.DEFAULT_LANGUAGE
@@ -77,8 +78,11 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
         
         sparql_vocabs = {}
         for cs in concept_schemes:
-            # handling CS URIs that end with '/'
-            vocab_id = cs['cs']['value'].replace('/conceptScheme', '').split('/')[-1]
+            # Handle CS URIs that end with '/' or a numeric version
+            vocab_id = os.path.basename(cs['cs']['value'])
+            while not vocab_id or re.match('^\d+$', vocab_id):
+                vocab_id = os.path.basename( os.path.dirname(cs['cs']['value']))
+            assert vocab_id and not re.match('^\d+$', vocab_id), 'Unable to determine valid vocab ID for conceptScheme {}'.format(cs['cs']['value'])
             
             #TODO: Investigate putting regex into SPARQL query
             #print("re.search('{}', '{}')".format(details.get('uri_filter_regex'), cs['cs']['value']))
@@ -86,9 +90,6 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
                 logging.debug('Skipping vocabulary {}'.format(vocab_id))
                 continue
             
-            if len(vocab_id) < 2:
-                vocab_id = cs['cs']['value'].split('/')[-2]
-                
             sparql_vocabs[vocab_id] = Vocabulary(
                 vocab_id,
                 cs['cs']['value'].replace('/conceptScheme', ''),
