@@ -40,80 +40,119 @@ class SPARQL(Source):
         
         # Get all the ConceptSchemes from the SPARQL endpoint
         # Interpret each CS as a Vocab
-        q = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX dct: <http://purl.org/dc/terms/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT * WHERE {{
     {{ GRAPH ?g {{
-        ?cs a skos:ConceptScheme .
-        OPTIONAL {{ ?cs (skos:prefLabel | dct:title) ?title .
+        ?conceptScheme a skos:ConceptScheme .
+        OPTIONAL {{ ?conceptScheme skos:prefLabel ?prefLabel .
+            FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "") }}
+        OPTIONAL {{ ?conceptScheme dct:title ?title .
             FILTER(lang(?title) = "{language}" || lang(?title) = "") }}
-        OPTIONAL {{ ?cs dct:creator ?creator }}
-        OPTIONAL {{ ?cs dct:created ?created }}
-        OPTIONAL {{ ?cs (dct:issued | dct:date) ?issued }}
-        OPTIONAL {{ ?cs dct:modified ?modified }}
-        OPTIONAL {{ ?cs owl:versionInfo ?version }}
-        OPTIONAL {{ ?cs (skos:definition | dct:description) ?description .
+        OPTIONAL {{ ?conceptScheme rdfs:label ?label .
+            FILTER(lang(?label) = "{language}" || lang(?label) = "") }}
+        OPTIONAL {{ ?conceptScheme dct:creator ?creator }}
+        OPTIONAL {{ ?conceptScheme dct:created ?created }}
+        OPTIONAL {{ ?conceptScheme dct:issued ?issued }}
+        OPTIONAL {{ ?conceptScheme dct:date ?date }}
+        OPTIONAL {{ ?conceptScheme dct:modified ?modified }}
+        OPTIONAL {{ ?conceptScheme owl:versionInfo ?version }}
+        OPTIONAL {{ ?conceptScheme skos:definition ?definition .
+            FILTER(lang(?definition) = "{language}" || lang(?definition) = "") }}
+        OPTIONAL {{ ?conceptScheme dct:description ?description .
             FILTER(lang(?description) = "{language}" || lang(?description) = "") }}
+        FILTER not exists {{?alternateConceptScheme owl:sameAs ?conceptScheme}}
     }} }}
     UNION
     {{
-        ?cs a skos:ConceptScheme .
-        OPTIONAL {{ ?cs (skos:prefLabel | dct:title) ?title .
+        ?conceptScheme a skos:ConceptScheme .
+        OPTIONAL {{ ?conceptScheme skos:prefLabel ?prefLabel .
+            FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "") }}
+        OPTIONAL {{ ?conceptScheme dct:title ?title .
             FILTER(lang(?title) = "{language}" || lang(?title) = "") }}
-        OPTIONAL {{ ?cs dct:creator ?creator }}
-        OPTIONAL {{ ?cs dct:created ?created }}
-        OPTIONAL {{ ?cs dct:issued ?issued }}
-        OPTIONAL {{ ?cs dct:modified ?modified }}
-        OPTIONAL {{ ?cs owl:versionInfo ?version }}
-        OPTIONAL {{ ?cs (skos:definition | dct:description) ?description .
+        OPTIONAL {{ ?conceptScheme rdfs:label ?label .
+            FILTER(lang(?label) = "{language}" || lang(?label) = "") }}
+        OPTIONAL {{ ?conceptScheme dct:creator ?creator }}
+        OPTIONAL {{ ?conceptScheme dct:created ?created }}
+        OPTIONAL {{ ?conceptScheme dct:issued ?issued }}
+        OPTIONAL {{ ?conceptScheme dct:date ?date }}
+        OPTIONAL {{ ?conceptScheme dct:modified ?modified }}
+        OPTIONAL {{ ?conceptScheme owl:versionInfo ?version }}
+        OPTIONAL {{ ?conceptScheme skos:definition ?definition .
+            FILTER(lang(?definition) = "{language}" || lang(?definition) = "") }}
+        OPTIONAL {{ ?conceptScheme dct:description ?description .
             FILTER(lang(?description) = "{language}" || lang(?description) = "") }}
+        FILTER not exists {{?alternateConceptScheme owl:sameAs ?conceptScheme}}
     }}
 }} 
 ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
+        #print(sparql_query)
         # record just the IDs & title for the VocPrez in-memory vocabs list
-        concept_schemes = Source.sparql_query(details['sparql_endpoint'], q, 
+        concept_schemes = Source.sparql_query(details['sparql_endpoint'], sparql_query, 
                                               sparql_username=details.get('sparql_username'), sparql_password=details.get('sparql_password')
                                               )
         assert concept_schemes is not None, 'Unable to query conceptSchemes'
         
-        sparql_vocabs = {}
-        for cs in concept_schemes:
+        vocab_record_dict = {}
+        for conceptScheme in concept_schemes:
             # Handle CS URIs that end with '/' or a numeric version
-            cs_uri = cs['cs']['value']
+            cs_uri = re.sub('^http(s?)://|/conceptScheme$', '', conceptScheme['conceptScheme']['value'])
             vocab_id = os.path.basename(cs_uri)
-            while not vocab_id or re.match('^\d+$', vocab_id):
+            while not vocab_id or re.match('^(\d|\.)+$', vocab_id):
                 cs_uri = os.path.dirname(cs_uri)
                 if not cs_uri:
                     vocab_id = None
                     break
                 vocab_id = os.path.basename(cs_uri)
                     
-            assert vocab_id, 'Unable to determine valid vocab ID for conceptScheme {}'.format(cs['cs']['value'])
+            assert vocab_id, 'Unable to determine valid vocab ID for conceptScheme {}'.format(conceptScheme['conceptScheme']['value'])
             
             #TODO: Investigate putting regex into SPARQL query
-            #print("re.search('{}', '{}')".format(details.get('uri_filter_regex'), cs['cs']['value']))
-            if details.get('uri_filter_regex') and not re.search(details['uri_filter_regex'], cs['cs']['value']):
+            #print("re.search('{}', '{}')".format(details.get('uri_filter_regex'), conceptScheme['conceptScheme']['value']))
+            if details.get('uri_filter_regex') and not re.search(details['uri_filter_regex'], conceptScheme['conceptScheme']['value']):
                 logging.debug('Skipping vocabulary {}'.format(vocab_id))
                 continue
             
-            sparql_vocabs[vocab_id] = Vocabulary(
-                vocab_id,
-                cs['cs']['value'].replace('/conceptScheme', ''),
-                cs['title'].get('value') or vocab_id if cs.get('title') else vocab_id, # Need string value for sorting, not None
-                cs['description'].get('value') if cs.get('description') is not None else None,
-                cs['creator'].get('value') or None if cs.get('creator') else None, # Need string value for sorting, not None
-                dateutil.parser.parse(cs.get('created').get('value')) if cs.get('created') is not None else None,
+            vocab_record = {
+                'id': vocab_id,
+                'uri': conceptScheme['conceptScheme']['value'].replace('/conceptScheme', ''),
+                'title': (conceptScheme.get('prefLabel') or conceptScheme.get('title') or conceptScheme.get('label') or {'value': None}).get('value') or None,
+                'description': (conceptScheme.get('definition') or conceptScheme.get('description') or {'value': None}).get('value') or None,
+                'creator': (conceptScheme.get('creator') or {'value': None}).get('value') or None,
+                'created': dateutil.parser.parse(conceptScheme.get('created').get('value')) if conceptScheme.get('created') is not None else None,
                 # dct:issued not in Vocabulary
-                # dateutil.parser.parse(cs.get('issued').get('value')) if cs.get('issued') is not None else None,
-                dateutil.parser.parse(cs.get('modified').get('value')) if cs.get('modified') is not None else None,
-                cs['version'].get('value') if cs.get('version') is not None else None,  # versionInfo
-                config.VocabSource.SPARQL,
-                cs['cs']['value'],
-                sparql_endpoint=details['sparql_endpoint'],
-                sparql_username=details['sparql_username'],
-                sparql_password=details['sparql_password']
-            )
+                # dateutil.parser.parse(conceptScheme.get('issued').get('value')) if conceptScheme.get('issued') is not None else None,
+                'modified': dateutil.parser.parse(conceptScheme.get('modified').get('value')) if conceptScheme.get('modified') is not None else None,
+                'versionInfo': (conceptScheme.get('version') or {'value': None}).get('value') or None,
+                'data_source': config.VocabSource.SPARQL,
+                'concept_scheme_uri': conceptScheme['conceptScheme']['value'],
+                'sparql_endpoint': details['sparql_endpoint'],
+                'sparql_username': details['sparql_username'],
+                'sparql_password': details['sparql_password']
+                }
+            
+            if vocab_id in vocab_record_dict.keys(): # Multiple records through duplicate predicates
+                logging.debug('Multiple records found for vocab {}'.format(vocab_id))
+                # If URIs are the same, then append string values (could be dodgy)
+                if vocab_record_dict[vocab_id]['concept_scheme_uri'].lower() == vocab_record['concept_scheme_uri'].lower():
+                    for key, value in vocab_record.items():
+                        if (vocab_record_dict[vocab_id][key] != value) and type(value) == str:
+                            logging.debug('Appending {} value {} to {}'.format(key, value, vocab_record_dict[vocab_id][key]))
+                            # Comma-separated values should be OK for literals
+                            vocab_record_dict[vocab_id][key] = vocab_record_dict[vocab_id][key] + ', ' + value if vocab_record_dict[vocab_id][key] else value
+                # Just use alphapbetic comparison as a sloppy version check
+                elif vocab_record_dict[vocab_id]['concept_scheme_uri'].lower() < vocab_record['concept_scheme_uri'].lower(): 
+                    logging.debug('Replacing vocab {} with {}'.format(vocab_record_dict[vocab_id]['concept_scheme_uri'], vocab_record['concept_scheme_uri']))
+                    vocab_record_dict[vocab_id] = vocab_record
+                else:
+                    logging.debug('NOT replacing vocab {} with {}'.format(vocab_record_dict[vocab_id]['concept_scheme_uri'], vocab_record['concept_scheme_uri']))
+            else:
+                vocab_record_dict[vocab_id] = vocab_record # New record - just add it
+                
+        # Create vocab objects in dict keyed by vocab_id
+        sparql_vocabs = {vocab_id: Vocabulary(**vocab_record) for vocab_id, vocab_record in vocab_record_dict.items()}
+
         g.VOCABS = {**g.VOCABS, **sparql_vocabs}
         logging.debug('SPARQL collect() complete.')
