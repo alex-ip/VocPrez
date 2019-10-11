@@ -79,10 +79,16 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
         sparql_vocabs = {}
         for cs in concept_schemes:
             # Handle CS URIs that end with '/' or a numeric version
-            vocab_id = os.path.basename(cs['cs']['value'])
+            cs_uri = cs['cs']['value']
+            vocab_id = os.path.basename(cs_uri)
             while not vocab_id or re.match('^\d+$', vocab_id):
-                vocab_id = os.path.basename( os.path.dirname(cs['cs']['value']))
-            assert vocab_id and not re.match('^\d+$', vocab_id), 'Unable to determine valid vocab ID for conceptScheme {}'.format(cs['cs']['value'])
+                cs_uri = os.path.dirname(cs_uri)
+                if not cs_uri:
+                    vocab_id = None
+                    break
+                vocab_id = os.path.basename(cs_uri)
+                    
+            assert vocab_id, 'Unable to determine valid vocab ID for conceptScheme {}'.format(cs['cs']['value'])
             
             #TODO: Investigate putting regex into SPARQL query
             #print("re.search('{}', '{}')".format(details.get('uri_filter_regex'), cs['cs']['value']))
