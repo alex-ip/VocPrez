@@ -56,9 +56,10 @@ class Source:
         
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT *
+SELECT DISTINCT ?collection ?label
 WHERE {{
     {{ GRAPH ?graph {{
+        <{concept_scheme_uri}> a skos:ConceptScheme .
         ?collection a skos:Collection .
         {{?collection (rdfs:label | skos:prefLabel) ?label .
         FILTER(lang(?label) = "{language}" || lang(?label) = "") 
@@ -71,7 +72,7 @@ WHERE {{
         FILTER(lang(?label) = "{language}" || lang(?label) = "") 
         }}
     }} 
-}}'''.format(language=self.language)
+}}'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, language=self.language)
         collections = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
 
         return [(x.get('collection').get('value'), x.get('label').get('value')) for x in collections]
