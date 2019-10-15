@@ -725,6 +725,9 @@ WHERE  {{
                 self._vocabulary.hasTopConcepts = self.get_top_concepts()
             if self._vocabulary.conceptHierarchy is None:
                 self._vocabulary.conceptHierarchy = self.get_concept_hierarchy()
+            if self._vocabulary.collections is None:
+                self._vocabulary.collections = self.list_collections()
+            
             
         return self._vocabulary
     

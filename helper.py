@@ -10,6 +10,7 @@ import errno
 import _config as config
 from bs4 import BeautifulSoup
 from flask import g
+import data.source as source
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -187,3 +188,9 @@ def get_vocab_id_from_uri(concept_uri):
             longest_vocab_uri_length = len(vocab.uri)
     
     return matched_vocab_id
+
+def get_source_class(vocab_id):
+    '''
+    Function to return Source subclass corresponding to vocab_id
+    '''
+    return getattr(source, g.VOCABS.get(vocab_id).data_source)

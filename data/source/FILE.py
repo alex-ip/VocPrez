@@ -1,5 +1,4 @@
 from data.source._source import Source
-from os.path import join
 import _config as config
 from rdflib import Graph, URIRef, RDF, RDFS
 from rdflib.namespace import DCTERMS, SKOS
@@ -39,12 +38,14 @@ class FILE(Source):
     def __init__(self, vocab_id, request, language=None):
         super().__init__(vocab_id, request, language)
         self.gr = FILE.load_pickle_graph(vocab_id)
+        self.vocab_dir = None # Will be set in collect()
 
-    @staticmethod
-    def collect(details):
+    @classmethod
+    def collect(self, details):
+        vocab_dir = os.path.join(config.APP_DIR, 'data', 'vocab_files')
         file_vocabs = {}
         # find all files in project_directory/data/source/vocab_files
-        for path, subdirs, files in os.walk(join(config.APP_DIR, 'data', 'vocab_files')):
+        for path, _subdirs, files in os.walk(vocab_dir):
             for name in files:
                 if name.split('.')[-1] in FILE.MAPPER:
                     # load file
@@ -54,7 +55,7 @@ class FILE(Source):
                     gr = Graph().parse(file_path, format=file_format)
                     file_name = name.split('.')[0]
                     # pickle to directory/vocab_files/
-                    with open(join(path, file_name + '.p'), 'wb') as f:
+                    with open(os.path.join(path, file_name + '.p'), 'wb') as f:
                         pickle.dump(gr, f)
                         f.close()
 
@@ -520,7 +521,8 @@ class FILE(Source):
 
     @staticmethod
     def load_pickle_graph(vocab_id):
-        pickled_file_path = join(config.APP_DIR, 'data', 'vocab_files', vocab_id + '.p')
+        vocab_dir = os.path.join(config.APP_DIR, 'data', 'vocab_files')
+        pickled_file_path = os.path.join(vocab_dir, vocab_id + '.p')
         if not os.path.isfile(pickled_file_path):  # no pickled file so re-make it
             if os.path.isfile(pickled_file_path.replace('.p', '.ttl')):
                 gg = Graph().parse(pickled_file_path.replace('.p', '.ttl'), format='turtle')
@@ -537,7 +539,7 @@ class FILE(Source):
                 f.close()
                 return gr
         except Exception as e:
-            print('EXCEPTION: ' + str(e))
+            logging.error('EXCEPTION: ' + str(e))
             return None
 
     @staticmethod

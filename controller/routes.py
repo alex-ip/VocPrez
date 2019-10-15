@@ -5,8 +5,6 @@ from model.collection import CollectionRenderer
 from model.skos_register import SkosRegisterRenderer
 import _config as config
 import markdown
-import data.source as source
-from data.source import Source
 from data.source.VOCBENCH import VbException
 import json
 from pyldapi import Renderer
@@ -14,6 +12,7 @@ import controller.sparql_endpoint_functions
 from rdflib.namespace import SKOS
 import datetime
 import logging
+import helper
 
 routes = Blueprint('routes', __name__)
 
@@ -154,7 +153,7 @@ def vocabulary(vocab_id):
 
     # get vocab details using appropriate source handler
     try:
-        vocab = getattr(source, g.VOCABS.get(vocab_id).data_source)(vocab_id, request, language).vocabulary
+        vocab = helper.get_source_class(vocab_id)(vocab_id, request, language).vocabulary
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -173,7 +172,7 @@ def concepts(vocab_id):
     
     # get vocab details using appropriate source handler
     try:
-        concepts = getattr(source, g.VOCABS.get(vocab_id).data_source)(vocab_id, request, language).list_concepts()
+        concepts = helper.get_source_class(vocab_id)(vocab_id, request, language).list_concepts()
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -254,7 +253,7 @@ def object():
             mimetype='text/plain'
         )
         
-    vocab_source = Source(vocab_id, request, language)
+    vocab_source = helper.get_source_class(vocab_id)(vocab_id, request, language)
 
     try:
         # TODO reuse object within if, rather than re-loading graph
