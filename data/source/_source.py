@@ -1,4 +1,4 @@
-import _config as config
+import abc
 from rdflib import Graph, URIRef
 from rdflib.namespace import SKOS
 import markdown
@@ -13,6 +13,8 @@ import base64
 import requests
 from time import sleep
 import helper as h
+import _config as config
+import data.source as source
 
 # Default to English if no DEFAULT_LANGUAGE in config
 if hasattr(config, 'DEFAULT_LANGUAGE:'):
@@ -22,6 +24,10 @@ else:
 
 
 class Source:
+    __metaclass__ = abc.ABCMeta
+    
+    _source_type_register = None # {source_name: None for source_name in config.VOCAB_SOURCES.keys()}
+    
     VOC_TYPES = [
         'http://purl.org/vocommons/voaf#Vocabulary',
         'http://www.w3.org/2004/02/skos/core#ConceptScheme',
@@ -37,8 +43,10 @@ class Source:
         self._graph = None # Property for rdflib Graph object to be populated on demand
         self._vocabulary = None # Property for Vocabulary object to be populated on demand
 
-    @staticmethod
-    def collect(details):
+
+    @classmethod
+    @abc.abstractmethod
+    def collect(self, source_name):
         """
         Specialised Sources must implement a collect method to get all the vocabs of their sort, listed in
         _config/__init__.py, at startup
@@ -127,7 +135,8 @@ ORDER BY ?prefLabel'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_
         Get a vocab from the cache
         :return:
         :rtype:
-        """       
+        """     
+        logging.info(g.VOCABS)  
         return g.VOCABS[self.vocab_id]
 
 
@@ -360,7 +369,7 @@ WHERE {{
 ORDER BY ?concept_preflabel'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, language=self.language)
         #print(sparql_query)
         bindings_list = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
-        #print(bindings_list)
+        #print(repr(bindings_list).encode('utf-8'))
         assert bindings_list is not None, 'SPARQL concept hierarchy query failed'
          
         hierarchy = build_hierarchy(bindings_list)
@@ -596,7 +605,7 @@ ORDER BY ?prefLabel
                 assert response.status_code == 200, 'Response status code {} != 200'.format(response.status_code)
                 return response.text
             except Exception as e:
-                print('SPARQL query failed: {}'.format(e))
+                logging.error('SPARQL query failed: {}'.format(e))
                 retries += 1
                 if retries <= config.MAX_RETRIES:
                     sleep(config.RETRY_SLEEP_SECONDS)
@@ -718,8 +727,6 @@ WHERE  {{
                 self._vocabulary.hasTopConcepts = self.get_top_concepts()
             if self._vocabulary.conceptHierarchy is None:
                 self._vocabulary.conceptHierarchy = self.get_concept_hierarchy()
-            if self._vocabulary.source is None:
-                self._vocabulary.source = self
             
         return self._vocabulary
     

@@ -19,8 +19,8 @@ class SPARQL(Source):
     def __init__(self, vocab_id, request, language=None):
         super().__init__(vocab_id, request, language)
 
-    @staticmethod
-    def collect(details):
+    @classmethod
+    def collect(self, details):
         """
         For this source, one SPARQL endpoint is given for a series of vocabs which are all separate ConceptSchemes
 

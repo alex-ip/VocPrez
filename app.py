@@ -33,7 +33,7 @@ def before_request():
         # load all the vocabs from it into this session's (g) VOCABS variable
         g.VOCABS = {}
         for _name, details in config.VOCAB_SOURCES.items():
-            getattr(source, details['source']).collect(details)
+            getattr(source, details['source']).collect(details) # Call class collect() method
     
         # also load all vocabs into VOCABS.p on disk for future use
         helper.cache_write(g.VOCABS, 'VOCABS.p')

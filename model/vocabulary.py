@@ -26,7 +26,6 @@ class Vocabulary:
             sparql_username=None,
             sparql_password=None
     ):
-        self.source = None
         self.id = id
         self.uri = uri
         self.title = title
