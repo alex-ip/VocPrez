@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, request, render_template, Markup, g, redirect, url_for, send_file
+from flask import Blueprint, Response, request, render_template, Markup, g, redirect, url_for
 from model.vocabulary import VocabularyRenderer
 from model.concept import ConceptRenderer
 from model.collection import CollectionRenderer
@@ -11,6 +11,7 @@ from data.source.VOCBENCH import VbException
 import json
 from pyldapi import Renderer
 import controller.sparql_endpoint_functions
+from rdflib.namespace import SKOS
 import datetime
 import logging
 
@@ -164,15 +165,18 @@ def vocabulary(vocab_id):
 
 
 @routes.route('/vocabulary/<vocab_id>/concept/')
-def vocabulary_list(vocab_id):
+def concepts(vocab_id):
     language = request.values.get('lang') or config.DEFAULT_LANGUAGE
 
     if vocab_id not in g.VOCABS.keys():
         return render_invalid_vocab_id_response()
     
-    vocab_source = Source(vocab_id, request, language)
-    concepts = vocab_source.list_concepts()
-    concepts.sort(key=lambda x: x['title'])
+    # get vocab details using appropriate source handler
+    try:
+        concepts = getattr(source, g.VOCABS.get(vocab_id).data_source)(vocab_id, request, language).list_concepts()
+    except VbException as e:
+        return render_vb_exception_response(e)
+
     total = len(concepts)
 
     # Search
@@ -228,10 +232,8 @@ def object():
     :return: A Flask Response object
     :rtype: :class:`flask.Response`
     """
-    #print(request.values)
     language = request.values.get('lang') or config.DEFAULT_LANGUAGE
     vocab_id = request.values.get('vocab_id')
-    uri = request.values.get('uri')
     _view = request.values.get('_view')
     _format = request.values.get('_format')
 
@@ -244,7 +246,7 @@ def object():
             mimetype='text/plain'
         )
 
-    if uri is None:
+    if request.values.get('uri') is None:
         return Response(
             'A Query String Argument \'uri\' must be supplied for this endpoint, '
             'indicating an object within a vocabulary',
@@ -259,14 +261,14 @@ def object():
         c = vocab_source.get_object_class()
         #print(c)
 
-        if c == 'http://www.w3.org/2004/02/skos/core#Concept':
+        if c == str(SKOS.Concept):
             concept = vocab_source.get_concept()
             return ConceptRenderer(
                 request,
                 concept
             ).render()
             
-        elif c == 'http://www.w3.org/2004/02/skos/core#ConceptScheme':
+        elif c == str(SKOS.ConceptScheme):
             vocabulary = vocab_source.vocabulary
 
             return VocabularyRenderer(
@@ -274,15 +276,15 @@ def object():
                 vocabulary
             ).render()
 
-        elif c == 'http://www.w3.org/2004/02/skos/core#Collection':
-            collection = vocab_source.get_collection(uri)
+        elif c == str(SKOS.Collection):
+            collection = vocab_source.get_collection()
 
             return CollectionRenderer(
                 request,
                 collection
             ).render()
         else:
-            return render_invalid_object_class_response(vocab_id, uri, c)
+            return render_invalid_object_class_response(vocab_id, request.values.get('uri'), c)
     except VbException as e:
         return render_vb_exception_response(e)
 

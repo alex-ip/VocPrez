@@ -29,9 +29,9 @@ class Source:
     
     VOC_TYPES = [
         'http://purl.org/vocommons/voaf#Vocabulary',
-        'http://www.w3.org/2004/02/skos/core#ConceptScheme',
-        'http://www.w3.org/2004/02/skos/core#ConceptCollection',
-        'http://www.w3.org/2004/02/skos/core#Concept',
+        SKOS.ConceptScheme,
+        SKOS.Collection,
+        SKOS.Concept,
     ]
 
     def __init__(self, vocab_id, request, language=None):
@@ -135,7 +135,6 @@ ORDER BY ?prefLabel'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_
         :return:
         :rtype:
         """     
-        logging.info(g.VOCABS)  
         return g.VOCABS[self.vocab_id]
 
 
@@ -226,7 +225,7 @@ WHERE {{
 }}
 ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
 """.format(concept_uri=concept_uri, 
-             language=self.language)   
+           language=self.language)   
         #print(sparql_query)
         result = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
         
@@ -302,9 +301,9 @@ ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
 
 
     def get_concept_hierarchy(self):
-        '''
+        """
         Function to draw concept hierarchy for vocabulary
-        '''
+        """
         def build_hierarchy(bindings_list, broader_concept=None, level=0):
             '''
             Recursive helper function to build hierarchy list from a bindings list
