@@ -5,6 +5,7 @@ from model.collection import CollectionRenderer
 from model.skos_register import SkosRegisterRenderer
 import _config as config
 import markdown
+from data.source import get_source_class
 from data.source.VOCBENCH import VbException
 import json
 from pyldapi import Renderer
@@ -153,7 +154,7 @@ def vocabulary(vocab_id):
 
     # get vocab details using appropriate source handler
     try:
-        vocab = helper.get_source_class(vocab_id)(vocab_id, request, language).vocabulary
+        vocab = get_source_class(vocab_id)(vocab_id, request, language).vocabulary
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -172,7 +173,7 @@ def concepts(vocab_id):
     
     # get vocab details using appropriate source handler
     try:
-        concepts = helper.get_source_class(vocab_id)(vocab_id, request, language).list_concepts()
+        concepts = get_source_class(vocab_id)(vocab_id, request, language).list_concepts()
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -253,7 +254,7 @@ def object():
             mimetype='text/plain'
         )
         
-    vocab_source = helper.get_source_class(vocab_id)(vocab_id, request, language)
+    vocab_source = get_source_class(vocab_id)(vocab_id, request, language)
 
     try:
         # TODO reuse object within if, rather than re-loading graph
