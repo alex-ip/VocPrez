@@ -12,6 +12,7 @@ if hasattr(config, 'DEFAULT_LANGUAGE:'):
 else:
     DEFAULT_LANGUAGE = 'en'
 
+
 class SPARQL(Source):
     """Source for a generic SPARQL endpoint
     """
@@ -90,8 +91,10 @@ SELECT DISTINCT * WHERE {{
 ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
         #print(sparql_query)
         # record just the IDs & title for the VocPrez in-memory vocabs list
-        concept_schemes = Source.sparql_query(details['sparql_endpoint'], sparql_query, 
-                                              sparql_username=details.get('sparql_username'), sparql_password=details.get('sparql_password')
+        concept_schemes = Source.sparql_query(details['sparql_endpoint'], 
+                                              sparql_query, 
+                                              sparql_username=details.get('sparql_username'), 
+                                              sparql_password=details.get('sparql_password')
                                               )
         assert concept_schemes is not None, 'Unable to query conceptSchemes'
         

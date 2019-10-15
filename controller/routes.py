@@ -5,7 +5,8 @@ from model.collection import CollectionRenderer
 from model.skos_register import SkosRegisterRenderer
 import _config as config
 import markdown
-from data.source._source import Source
+import data.source as source
+from data.source import Source
 from data.source.VOCBENCH import VbException
 import json
 from pyldapi import Renderer
@@ -19,13 +20,12 @@ routes = Blueprint('routes', __name__)
 def render_invalid_vocab_id_response():
     msg = """The vocabulary ID that was supplied was not known. It must be one of these: \n\n* """ + '\n* '.join(g.VOCABS.keys())
     msg = Markup(markdown.markdown(msg))
-    return render_template('error.html', title='Error - invalid vocab id', heading='Invalid Vocab ID', msg=msg)
-    # return Response(
-    #     'The vocabulary ID you\'ve supplied is not known. Must be one of:\n ' +
-    #     '\n'.join(g.VOCABS.keys()),
-    #     status=400,
-    #     mimetype='text/plain'
-    # )
+    return render_template(
+        'error.html',
+        title='Error - invalid vocab id',
+        heading='Invalid Vocab ID',
+        msg=msg
+    )
 
 
 def render_vb_exception_response(e):
@@ -111,7 +111,7 @@ def vocabularies():
     #   1. read all static vocabs from g.VOCABS
     # get this instance's list of vocabs
     vocabs = []  # local copy (to this request) for sorting
-    for k, voc in g.VOCABS.items():
+    for voc in g.VOCABS.values():
         vocabs.append(voc)
     vocabs.sort(key=lambda v: v.title)
     total = len(g.VOCABS.items())
@@ -153,7 +153,7 @@ def vocabulary(vocab_id):
 
     # get vocab details using appropriate source handler
     try:
-        vocab = Source(vocab_id, request, language).vocabulary
+        vocab = getattr(source, g.VOCABS.get(vocab_id).data_source)(vocab_id, request, language).vocabulary
     except VbException as e:
         return render_vb_exception_response(e)
 

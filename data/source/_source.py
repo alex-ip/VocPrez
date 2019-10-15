@@ -14,7 +14,6 @@ import requests
 from time import sleep
 import helper as h
 import _config as config
-import data.source as source
 
 # Default to English if no DEFAULT_LANGUAGE in config
 if hasattr(config, 'DEFAULT_LANGUAGE:'):
