@@ -18,8 +18,8 @@ An example "collection"
     <tr>
         <th>Members</th>
         <td class="list">
-            {% for member in collection.members -%}
-            <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(member.uri) }}">{{ member.prefLabel }}</a><br>
+            {% for uri, prefLabel in collection.members.items() -%}
+            <a href="{{ url_for('routes.object') }}?vocab_id={{ vocab_id }}&uri={{ h.url_encode(uri) }}">{{ prefLabel }}</a><br>
             {% endfor %}
         </td>
     </tr>

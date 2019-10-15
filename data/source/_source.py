@@ -27,11 +27,13 @@ class Source:
     
     _source_type_register = None # {source_name: None for source_name in config.VOCAB_SOURCES.keys()}
     
-    VOC_TYPES = [
+    VOC_TYPES = [str(voc_type) 
+        for voc_type in [
         'http://purl.org/vocommons/voaf#Vocabulary',
         SKOS.ConceptScheme,
         SKOS.Collection,
         SKOS.Concept,
+        ]
     ]
 
     def __init__(self, vocab_id, request, language=None):
@@ -56,32 +58,35 @@ class Source:
         
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dct: <http://purl.org/dc/terms/>
 SELECT DISTINCT ?collection ?label
 WHERE {{
     {{ GRAPH ?graph {{
         <{concept_scheme_uri}> a skos:ConceptScheme .
         ?collection a skos:Collection .
-        {{?collection (rdfs:label | skos:prefLabel) ?label .
+        OPTIONAL {{?collection (rdfs:label | skos:prefLabel | dct:title) ?label .
         FILTER(lang(?label) = "{language}" || lang(?label) = "") 
         }}
     }} }}
     UNION
     {{
         ?collection a skos:Collection .
-        {{?collection (rdfs:label | skos:prefLabel) ?label .
+        OPTIONAL {{?collection (rdfs:label | skos:prefLabel | dct:title) ?label .
         FILTER(lang(?label) = "{language}" || lang(?label) = "") 
         }}
     }} 
-}}'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, language=self.language)
+}}'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, 
+             language=self.language)
+        print(sparql_query)
         collections = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
 
-        return [(x.get('collection').get('value'), x.get('label').get('value')) for x in collections]
+        return [(collection['collection']['value'], (collection.get('label') or {'value': h.make_title(collection['collection']['value'])})['value'] ) for collection in collections]
 
     def list_concepts(self):
         
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
-SELECT DISTINCT ?concept ?prefLabel ?d ?created ?modified
+SELECT DISTINCT ?concept ?prefLabel ?d ?created ?memberodified
 WHERE {{
     {{ GRAPH ?graph {{
         <{concept_scheme_uri}> a skos:ConceptScheme .
@@ -93,7 +98,7 @@ WHERE {{
         FILTER(lang(?d) = "{language}" || lang(?d) = "") 
         }}
         OPTIONAL {{ ?concept dct:created ?created . }}
-        OPTIONAL {{ ?concept dct:modified ?modified . }}
+        OPTIONAL {{ ?concept dct:modified ?memberodified . }}
     }} }}
     UNION
     {{
@@ -106,7 +111,7 @@ WHERE {{
         FILTER(lang(?d) = "{language}" || lang(?d) = "") 
         }}
         OPTIONAL {{ ?concept dct:created ?created . }}
-        OPTIONAL {{ ?concept dct:modified ?modified . }}
+        OPTIONAL {{ ?concept dct:modified ?memberodified . }}
     }}
 }}
 ORDER BY ?prefLabel'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, 
@@ -139,53 +144,60 @@ ORDER BY ?prefLabel'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_
         return g.VOCABS[self.vocab_id]
 
 
-    def get_collection(self, uri):
-        sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT *
+    def get_collection(self):
+        collection_uri = self.request.values.get('uri')
+        sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?label ?comment
 WHERE {{ 
     {{ GRAPH ?graph {{
-        {{ <{collection_uri}> (rdfs:label | skos:prefLabel) ?label .
-        FILTER(lang(?label) = "{language}" || lang(?label) = "") }}
-        OPTIONAL {{?s rdfs:comment ?comment .
+        <{collection_uri}> (rdfs:label | skos:prefLabel | dct:title) ?label .
+        FILTER(lang(?label) = "{language}" || lang(?label) = "")
+        OPTIONAL {{<{collection_uri}> rdfs:comment ?comment .
         FILTER(lang(?comment) = "{language}" || lang(?comment) = "") }}
     }} }}
     UNION
     {{
-        {{ <{collection_uri}> (rdfs:label | skos:prefLabel) ?label .
+        {{ <{collection_uri}> a skos:Collection .
+        <{collection_uri}> (rdfs:label | skos:prefLabel | dct:title) ?label .
         FILTER(lang(?label) = "{language}" || lang(?label) = "") }}
-        OPTIONAL {{?s rdfs:comment ?comment .
+        OPTIONAL {{<{collection_uri}> rdfs:comment ?comment .
         FILTER(lang(?comment) = "{language}" || lang(?comment) = "") }}
     }}
-}}'''.format(collection_uri=uri, 
-                language=self.language)
+}}'''.format(collection_uri=collection_uri, 
+             language=self.language)
+        print(sparql_query)
         metadata = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
-
+        print(metadata)
         # get the collection's members
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-SELECT DISTINCT *
+SELECT DISTINCT ?member ?prefLabel
 WHERE {{
     {{ GRAPH ?graph {{
-        <{}> skos:member ?m .
-        {{ ?n skos:prefLabel ?prefLabel .
+        <{collection_uri}> a skos:Collection .
+        <{collection_uri}> skos:member ?member .
+        {{ ?member skos:prefLabel ?prefLabel .
         FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "") }}
     }} }}
     UNION
     {{
-        <{}> skos:member ?m .
-        {{ ?n skos:prefLabel ?prefLabel .
+        <{collection_uri}> skos:member ?member .
+        {{ ?member skos:prefLabel ?prefLabel .
         FILTER(lang(?prefLabel) = "{language}" || lang(?prefLabel) = "") }}
     }}
-}}'''.format(collection_uri=uri, 
-                            language=self.language)
+}}'''.format(collection_uri=collection_uri, 
+             language=self.language)
+        print(sparql_query)
         members = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
-
+        print(members)
         from model.collection import Collection
         return Collection(
-            self.vocab_id,
-            uri,
-            metadata[0]['label']['value'],
-            metadata[0].get('comment').get('value') if metadata[0].get('comment') is not None else None,
-            [(x.get('m').get('value'), x.get('m').get('value')) for x in members]
+            vocab_id=self.vocab_id,
+            prefLabel=metadata[0]['label']['value'],
+            definition=metadata[0].get('comment').get('value') if metadata[0].get('comment') is not None else None,
+            members={member.get('member').get('value'): member.get('prefLabel').get('value') for member in members},
+            source=None,
         )
 
     def get_concept(self):

@@ -221,7 +221,7 @@ class FILE(Source):
         prefLabel = None
         definition = None
         members_uris = []
-        members = []
+        members = {}
         source = None
         for p, o in self.gr.predicate_objects(subject=URIRef(collection_uri)):
             if p in [SKOS.prefLabel, DCTERMS.title, RDFS.label]:
@@ -235,10 +235,7 @@ class FILE(Source):
 
         for member_uri in members_uris:
             for o in self.gr.objects(subject=member_uri, predicate=SKOS.prefLabel):
-                members.append({
-                    'uri': str(member_uri),
-                    'prefLabel': str(o)
-                })
+                members[str(member_uri)] = str(o)
 
         return Collection(
             vocab_id=self.vocab_id,
