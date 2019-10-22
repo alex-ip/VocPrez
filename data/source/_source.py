@@ -14,6 +14,7 @@ import requests
 from time import sleep
 import helper as h
 import _config as config
+import data.source as source
 
 # Default to English if no DEFAULT_LANGUAGE in config
 if hasattr(config, 'DEFAULT_LANGUAGE:'):
@@ -35,6 +36,20 @@ class Source:
         SKOS.Concept,
         ]
     ]
+
+    @classmethod
+    def get_source_class(self, vocab_id):
+        '''
+        Function to return Source subclass corresponding to vocab_id
+        '''
+        return getattr(source, g.VOCABS.get(vocab_id).data_source)
+
+    @classmethod
+    def get_source(self, vocab_id, request, language=None):
+        '''
+        Function to return instance of Source subclass corresponding to vocab_id
+        '''
+        return Source.get_source_class(vocab_id)(vocab_id, request, language=None)
 
     def __init__(self, vocab_id, request, language=None):
         self.vocab_id = vocab_id
@@ -740,6 +755,8 @@ WHERE  {{
                 self._vocabulary.conceptHierarchy = self.get_concept_hierarchy()
             if self._vocabulary.collections is None:
                 self._vocabulary.collections = self.list_collections()
+            if self._vocabulary.source is None:
+                self._vocabulary.source = self
             
             
         return self._vocabulary

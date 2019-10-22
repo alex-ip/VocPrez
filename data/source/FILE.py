@@ -10,6 +10,7 @@ from model.concept import Concept
 from model.collection import Collection
 from flask import g
 import logging
+import errno
 from model.vocabulary import Vocabulary
 import helper as h
 
@@ -34,30 +35,38 @@ class FILE(Source):
         'rdf': 'xml',
         'owl': 'xml',
     }
+    
+    VOCAB_DIR = os.path.join(config.APP_DIR, 'data', 'vocab_files')
 
     def __init__(self, vocab_id, request, language=None):
         super().__init__(vocab_id, request, language)
-        self.gr = FILE.load_pickle_graph(vocab_id)
-        self.vocab_dir = None # Will be set in collect()
+        self._graph = FILE.load_pickle_graph(vocab_id)
 
     @classmethod
     def collect(self, details):
-        vocab_dir = os.path.join(config.APP_DIR, 'data', 'vocab_files')
+        try:
+            os.makedirs(config.VOCAB_CACHE_DIR)
+            logging.debug('File cache directory {} created'.format(os.path.abspath(config.VOCAB_CACHE_DIR)))
+        except OSError as exc:  # Python >2.5
+            if exc.errno == errno.EEXIST and os.path.isdir(config.VOCAB_CACHE_DIR):
+                pass
+            else:
+                raise   
+
         file_vocabs = {}
         # find all files in project_directory/data/source/vocab_files
-        for path, _subdirs, files in os.walk(vocab_dir):
+        for path, _subdirs, files in os.walk(FILE.VOCAB_DIR):
             for name in files:
-                if name.split('.')[-1] in FILE.MAPPER:
+                vocab_id = os.path.splitext(name)[0]
+                file_extension = os.path.splitext(name)[1][1:]
+                if file_extension in FILE.MAPPER.keys():
                     # load file
                     file_path = os.path.join(path, name)
-                    file_format = FILE.MAPPER[name.split('.')[-1]]
-                    # load graph
-                    gr = Graph().parse(file_path, format=file_format)
-                    file_name = name.split('.')[0]
-                    # pickle to directory/vocab_files/
-                    with open(os.path.join(path, file_name + '.p'), 'wb') as f:
-                        pickle.dump(gr, f)
-                        f.close()
+                    file_format = FILE.MAPPER[file_extension]
+                    logging.debug('loading graph from {} file {}'.format(file_format, file_path))
+                    graph = Graph().parse(file_path, format=file_format)
+                    
+                    FILE.pickle_to_file(vocab_id, graph)
 
                     # extract vocab metadata
                     # Get the ConceptSchemes from the graph of the file
@@ -91,8 +100,7 @@ class FILE(Source):
                             }}
                         }}'''.format(language=DEFAULT_LANGUAGE)
 
-                    vocab_id = str(name).split('.')[0]
-                    for cs in gr.query(q):
+                    for cs in graph.query(q):
                         file_vocabs[vocab_id] = Vocabulary(
                             vocab_id,
                             str(cs[0]).replace('/conceptScheme', ''),
@@ -153,10 +161,10 @@ class FILE(Source):
     def list_collections(self):
         collections_uris = []
         collections = []
-        for c in self.gr.subjects(predicate=RDF.type, object=SKOS.Collection):
+        for c in self.graph.subjects(predicate=RDF.type, object=SKOS.Collection):
             collections_uris.append(c)
         for collections_uri in collections_uris:
-            for p, o in self.gr.predicate_objects(subject=collections_uri):
+            for p, o in self.graph.predicate_objects(subject=collections_uri):
                 if p in [SKOS.prefLabel, DCTERMS.title, RDFS.label]:
                     collections.append((
                         str(collections_uri), str(o)
@@ -202,7 +210,7 @@ class FILE(Source):
             '''.format(concept_scheme_uri=vocab.concept_scheme_uri, language=self.language)
 
         concepts = []
-        for concept in self.gr.query(q):
+        for concept in self.graph.query(q):
             metadata = {
                 'key': self.vocab_id,
                 'uri': concept[0],
@@ -223,7 +231,7 @@ class FILE(Source):
         members_uris = []
         members = {}
         source = None
-        for p, o in self.gr.predicate_objects(subject=URIRef(collection_uri)):
+        for p, o in self.graph.predicate_objects(subject=URIRef(collection_uri)):
             if p in [SKOS.prefLabel, DCTERMS.title, RDFS.label]:
                 prefLabel = str(o)
             elif p in [SKOS.definition, DCTERMS.description, RDFS.comment]:
@@ -234,7 +242,7 @@ class FILE(Source):
                 source = str(o)
 
         for member_uri in members_uris:
-            for o in self.gr.objects(subject=member_uri, predicate=SKOS.prefLabel):
+            for o in self.graph.objects(subject=member_uri, predicate=SKOS.prefLabel):
                 members[str(member_uri)] = str(o)
 
         return Collection(
@@ -272,7 +280,7 @@ class FILE(Source):
             }}
             """.format(concept_uri=concept_uri, language=self.language)
 
-        result = self.gr.query(q)
+        result = self.graph.query(q)
 
         assert result, 'FILE source is unable to query concepts for {}'.format(self.request.values.get('uri'))
 
@@ -430,7 +438,7 @@ class FILE(Source):
                     }}
                     ORDER BY ?pl
                     '''.format(concept_scheme_uri=vocab.concept_scheme_uri, language=self.language)
-                for tc in self.gr.query(q):
+                for tc in self.graph.query(q):
                     if tc[1] not in pl_cache:  # only add if not already in cache
                         tcs.append((tc[0], tc[1]))
                         pl_cache.append(tc[1])
@@ -497,7 +505,7 @@ class FILE(Source):
             ORDER BY ?concept_preflabel'''.format(vocab_uri=vocab.concept_scheme_uri, language=self.language)
 
         bindings_list = []
-        for r in self.gr.query(q):
+        for r in self.graph.query(q):
             bindings_list.append({
                 # ?concept ?concept_preflabel ?broader_concept
                 'concept': r[0],
@@ -513,42 +521,30 @@ class FILE(Source):
 
     def get_object_class(self):
         uri = h.url_decode(self.request.values.get('uri'))
-        for o in self.gr.objects(subject=URIRef(uri), predicate=RDF.type):
+        for o in self.graph.objects(subject=URIRef(uri), predicate=RDF.type):
             return str(o)
 
     @staticmethod
     def load_pickle_graph(vocab_id):
-        vocab_dir = os.path.join(config.APP_DIR, 'data', 'vocab_files')
-        pickled_file_path = os.path.join(vocab_dir, vocab_id + '.p')
-        if not os.path.isfile(pickled_file_path):  # no pickled file so re-make it
-            if os.path.isfile(pickled_file_path.replace('.p', '.ttl')):
-                gg = Graph().parse(pickled_file_path.replace('.p', '.ttl'), format='turtle')
-            elif os.path.isfile(pickled_file_path.replace('.p', '.rdf')):
-                gg = Graph().parse(pickled_file_path.replace('.p', '.rdf'), format='turtle')
-            else:
-                return None
-
-            FILE.pickle_to_file(vocab_id, gg)
-
+        pickled_file_path = os.path.join(config.VOCAB_CACHE_DIR, vocab_id + '.p')
         try:
-            with open(pickled_file_path, 'rb') as f:
-                gr = pickle.load(f)
-                f.close()
-                return gr
+            with open(pickled_file_path, 'rb') as pickled_file:
+                graph = pickle.load(pickled_file)
+                pickled_file.close()
+                return graph
         except Exception as e:
-            logging.error('EXCEPTION: ' + str(e))
+            logging.error('Error loading pickled file {}: {}'.format(pickled_file, e))
             return None
+ 
 
     @staticmethod
-    def pickle_to_file(vocab_id, g):
+    def pickle_to_file(vocab_id, graph):
+        pickled_file_path = os.path.join(config.VOCAB_CACHE_DIR, vocab_id + '.p')
         logging.debug('Pickling file: {}'.format(vocab_id))
-        path = os.path.join(config.APP_DIR, 'data', 'vocab_files', vocab_id)
         # TODO: Check if file_name already has extension
-        with open(path + '.p', 'wb') as f:
-            pickle.dump(g, f)
-            f.close()
-
-        g.serialize(path + '.ttl', format='turtle')
+        with open(pickled_file_path, 'wb') as pickled_file:
+            pickle.dump(graph, pickled_file)
+            pickled_file.close()
 
 
 if __name__ == '__main__':
