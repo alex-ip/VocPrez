@@ -154,7 +154,7 @@ def vocabulary(vocab_id):
 
     # get vocab details using appropriate source handler
     try:
-        vocab = Source.get_source(vocab_id, request, language).vocabulary
+        vocab = Source.get_source(vocab_id, request).vocabulary
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -173,7 +173,7 @@ def concepts(vocab_id):
     
     # get vocab details using appropriate source handler
     try:
-        concepts = Source.get_source(vocab_id, request, language).list_concepts()
+        concepts = Source.get_source(vocab_id, request).list_concepts()
     except VbException as e:
         return render_vb_exception_response(e)
 
@@ -254,7 +254,7 @@ def object():
             mimetype='text/plain'
         )
         
-    vocab_source = Source.get_source(vocab_id, request, language)
+    vocab_source = Source.get_source(vocab_id, request)
 
     try:
         # TODO reuse object within if, rather than re-loading graph

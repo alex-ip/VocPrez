@@ -38,8 +38,8 @@ class FILE(Source):
     
     VOCAB_DIR = os.path.join(config.APP_DIR, 'data', 'vocab_files')
 
-    def __init__(self, vocab_id, request, language=None):
-        super().__init__(vocab_id, request, language)
+    def __init__(self, vocab_id, request):
+        super().__init__(vocab_id, request)
         self._graph = FILE.load_pickle_graph(vocab_id)
 
     @classmethod

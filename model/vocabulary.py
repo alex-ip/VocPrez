@@ -58,7 +58,7 @@ class Vocabulary:
 
 
 class VocabularyRenderer(Renderer):
-    def __init__(self, request, vocab, language='en'):
+    def __init__(self, request, vocab):
         self.views = self._add_dcat_view()
         self.views.update(self._add_skos_view())
         self.navs = [
@@ -68,7 +68,6 @@ class VocabularyRenderer(Renderer):
         ]
 
         self.vocab = vocab
-        self.language = language
 
         super().__init__(
             request,

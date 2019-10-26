@@ -19,8 +19,8 @@ class VbException(Exception):
 
 
 class VOCBENCH(Source):
-    def __init__(self, vocab_id, request, language=None):
-        super().__init__(vocab_id, request, language)
+    def __init__(self, vocab_id, request):
+        super().__init__(vocab_id, request)
 
     @staticmethod
     def init():

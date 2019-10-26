@@ -45,16 +45,16 @@ class Source:
         return getattr(source, g.VOCABS.get(vocab_id).data_source)
 
     @classmethod
-    def get_source(self, vocab_id, request, language=None):
+    def get_source(self, vocab_id, request):
         '''
         Function to return instance of Source subclass corresponding to vocab_id
         '''
-        return Source.get_source_class(vocab_id)(vocab_id, request, language=None)
+        return Source.get_source_class(vocab_id)(vocab_id, request)
 
-    def __init__(self, vocab_id, request, language=None):
+    def __init__(self, vocab_id, request):
         self.vocab_id = vocab_id
         self.request = request
-        self.language = language or DEFAULT_LANGUAGE
+        self.language = request.values.get('lang') or DEFAULT_LANGUAGE
         
         self._graph = None # Property for rdflib Graph object to be populated on demand
         self._vocabulary = None # Property for Vocabulary object to be populated on demand
@@ -216,8 +216,7 @@ WHERE {{
         )
 
     def get_concept(self):
-        concept_uri=self.request.values.get('uri')
-        
+        concept_uri = self.request.values.get('uri')
         
         # Don't filter prefLabel language - we need to show multilingual preflabels with language tags
         sparql_query = """PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -277,7 +276,7 @@ ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
                 if ((not prefLabel and not preflabel_lang) or 
                     (preflabel_lang == self.language)
                     ):
-                    prefLabel = row['object']['value'] # Set current language prefLabel
+                    prefLabel = row['object']['value'] # Set current self.language prefLabel
                     
                 # Omit current language string from list (remove this if we want to show all)
                 if preflabel_lang in ['', self.language]:
