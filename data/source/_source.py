@@ -54,7 +54,7 @@ class Source:
     def __init__(self, vocab_id, request):
         self.vocab_id = vocab_id
         self.request = request
-        self.language = request.values.get('lang') or DEFAULT_LANGUAGE
+        self.language = request.values.get('lang') or DEFAULT_LANGUAGE if request else DEFAULT_LANGUAGE
         
         self._graph = None # Property for rdflib Graph object to be populated on demand
         self._vocabulary = None # Property for Vocabulary object to be populated on demand
