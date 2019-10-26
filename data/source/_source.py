@@ -69,8 +69,8 @@ class Source:
         """
         pass
 
-    def list_collections(self):
-        
+    def list_collections(self, concept_scheme_uri=None):
+        concept_scheme_uri = concept_scheme_uri or self.vocabulary.concept_scheme_uri
         sparql_query = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX dct: <http://purl.org/dc/terms/>
@@ -90,9 +90,9 @@ WHERE {{
         FILTER(lang(?label) = "{language}" || lang(?label) = "") 
         }}
     }} 
-}}'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, 
+}}'''.format(concept_scheme_uri=concept_scheme_uri, 
              language=self.language)
-        print(sparql_query)
+        #print(sparql_query)
         collections = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
 
         return [(collection['collection']['value'], (collection.get('label') or {'value': h.make_title(collection['collection']['value'])})['value'] ) for collection in collections]
@@ -328,7 +328,7 @@ ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
         )
 
 
-    def get_concept_hierarchy(self):
+    def get_concept_hierarchy(self, concept_scheme_uri=None):
         """
         Function to draw concept hierarchy for vocabulary
         """
@@ -362,7 +362,8 @@ ORDER BY ?predicateLabel ?predicate ?object ?objectLabel
                               ] + build_hierarchy(bindings_list, concept, level)
             #print(level, hierarchy)
             return hierarchy
-                 
+        
+        concept_scheme_uri = concept_scheme_uri or self.vocabulary.concept_scheme_uri        
         sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dct: <http://purl.org/dc/terms/>
@@ -392,7 +393,8 @@ WHERE {{
         FILTER(lang(?concept_preflabel) = "{language}" || lang(?concept_preflabel) = "")
     }}
 }}
-ORDER BY ?concept_preflabel'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri, language=self.language)
+ORDER BY ?concept_preflabel'''.format(concept_scheme_uri=concept_scheme_uri, 
+                                      language=self.language)
         #print(sparql_query)
         bindings_list = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password)
         #print(repr(bindings_list).encode('utf-8'))
@@ -509,7 +511,8 @@ WHERE {{
         return markdown.markdown(text)
 
 
-    def get_top_concepts(self):
+    def get_top_concepts(self, concept_scheme_uri=None):
+        concept_scheme_uri = concept_scheme_uri or self.vocabulary.concept_scheme_uri
         # Get defined top concepts (if any)
         sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -539,8 +542,8 @@ WHERE {{
     }}
 }}
 ORDER BY ?prefLabel
-'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri,
-                                   language=self.language)
+'''.format(concept_scheme_uri=concept_scheme_uri,
+           language=self.language)
         #print(sparql_query)
         top_concepts = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password) or []
         
@@ -572,7 +575,7 @@ WHERE {{
     }}
 }}
 ORDER BY ?prefLabel
-'''.format(concept_scheme_uri=self.vocabulary.concept_scheme_uri,
+'''.format(concept_scheme_uri=concept_scheme_uri,
            language=self.language)
             #print(sparql_query)
             top_concepts = Source.sparql_query(self.vocabulary.sparql_endpoint, sparql_query, self.vocabulary.sparql_username, self.vocabulary.sparql_password) or []

@@ -118,9 +118,10 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
                 logging.debug('Skipping vocabulary {}'.format(vocab_id))
                 continue
             
+            concept_scheme_uri=conceptScheme['conceptScheme']['value']
             vocab_record = {
                 'id': vocab_id,
-                'uri': conceptScheme['conceptScheme']['value'].replace('/conceptScheme', ''),
+                'uri': concept_scheme_uri.replace('/conceptScheme', ''),
                 'title': (conceptScheme.get('prefLabel') or conceptScheme.get('title') or conceptScheme.get('label') or {'value': None}).get('value') or None,
                 'description': (conceptScheme.get('definition') or conceptScheme.get('description') or {'value': None}).get('value') or None,
                 'creator': (conceptScheme.get('creator') or {'value': None}).get('value') or None,
@@ -130,10 +131,10 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
                 'modified': dateutil.parser.parse(conceptScheme.get('modified').get('value')) if conceptScheme.get('modified') is not None else None,
                 'versionInfo': (conceptScheme.get('version') or {'value': None}).get('value') or None,
                 'data_source': config.VocabSource.SPARQL,
-                'concept_scheme_uri': conceptScheme['conceptScheme']['value'],
+                'concept_scheme_uri': concept_scheme_uri,
                 'sparql_endpoint': details['sparql_endpoint'],
                 'sparql_username': details['sparql_username'],
-                'sparql_password': details['sparql_password']
+                'sparql_password': details['sparql_password'],
                 }
             
             if vocab_id in vocab_record_dict.keys(): # Multiple records through duplicate predicates
@@ -157,5 +158,16 @@ ORDER BY ?title'''.format(language=DEFAULT_LANGUAGE)
         # Create vocab objects in dict keyed by vocab_id
         sparql_vocabs = {vocab_id: Vocabulary(**vocab_record) for vocab_id, vocab_record in vocab_record_dict.items()}
 
+        #TODO: Refactor so that this awful hack is not necessary.
+        # Instantiate source object for each vocab to populate attributes
+        for vocab_id, vocab in sparql_vocabs.items():
+            #print(vocab_id)
+            vocab_source = self(vocab_id=vocab_id, request=None)
+            vocab_source._vocabulary = vocab
+            
+            vocab.hasTopConcepts = vocab_source.get_top_concepts()
+            #vocab.conceptHierarchy = vocab_source.get_concept_hierarchy() # needs a valid request
+            vocab.collections = vocab_source.list_collections()            
+        
         g.VOCABS = {**g.VOCABS, **sparql_vocabs}
         logging.debug('SPARQL collect() complete.')
